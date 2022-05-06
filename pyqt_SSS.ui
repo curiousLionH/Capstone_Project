@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>576</width>
-    <height>541</height>
+    <width>1137</width>
+    <height>918</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -56,7 +56,7 @@
      <string>카메라 사진이 보여질 공간</string>
     </property>
    </widget>
-   <widget class="QLabel" name="guide_after_face_check_label">
+   <widget class="QLabel" name="user_guide_label">
     <property name="enabled">
      <bool>true</bool>
     </property>
@@ -113,7 +113,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>576</width>
+     <width>1137</width>
      <height>21</height>
     </rect>
    </property>

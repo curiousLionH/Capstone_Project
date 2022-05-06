@@ -29,8 +29,9 @@ class WindowClass(QMainWindow, form_class):
         self.setupUi(self)
 
         # 유저 얼굴 확인 됐으면 True, 아니면 False
-        self.identify_user = False
-        self.user_dic = {1:"jiwon", 2:"junhwan"}
+        self.identify_user_token = 0
+        self.user_dic = {0:"jiwon", 1:"junhwan"}
+        self.cap = cv2.VideoCapture(0)
         #
 
         # 얘가 음주측정 안내, 성공 실패, 얼굴인식 다 여기서 멘트 안내.
@@ -39,7 +40,7 @@ class WindowClass(QMainWindow, form_class):
 
         # 카메라 시작 버튼 연결
         self.camera_start_button.clicked.connect(self.camera_start)
-        self.camera_start_button.clicked.connect(lambda: self.faceID_start(1))
+        self.camera_start_button.clicked.connect(lambda: self.faceID_start("jiwon"))
 
         # 얼굴인식 완료됐다고 치는 버튼
         self.temp_button_1.clicked.connect(self.guide_alcohol_check)
@@ -62,14 +63,14 @@ class WindowClass(QMainWindow, form_class):
         # 내 생각엔 이거 얼굴인식, 눈 인식, gui 표시까지
         # 다 하나의 사진으로 처리해야 되는 부분이 추가되어야 함
         # 이렇게 다 카메라 불러오면 너무 느려
-        cap = cv2.VideoCapture(0)
-        width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        # cap = cv2.VideoCapture(0)
+        width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         camera_label.resize(width, height)
         guide_label.setVisible(True)
         guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
         while True:
-            ret, img = cap.read()
+            ret, img = self.cap.read()
             if ret:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w, c = img.shape
@@ -80,7 +81,7 @@ class WindowClass(QMainWindow, form_class):
             else:
                 guide_label.setText("카메라를 불러올 수 없음")
                 break
-        cap.release()
+        self.cap.release()
         print("Thread end.")
 
     # 카메라 끝
@@ -94,7 +95,7 @@ class WindowClass(QMainWindow, form_class):
         print("started..")
 
     def faceID_start(self, user):
-        th = threading.Thread(target=self.faceID, args=(user))
+        th = threading.Thread(target=self.faceID, args=(user,))
         th.start()
         print("started..")
 
@@ -113,72 +114,73 @@ class WindowClass(QMainWindow, form_class):
     def faceID(self, user="jiwon"):
         print("let's start faceID")
 
-        video_capture = cv2.VideoCapture(0)
+        video_capture = self.cap
 
-        path = "%s.jpg" % (self.user_dic[user])
+        path = "%s.jpg" % (user)
         img = face_recognition.load_image_file(path)
         face_encoding = face_recognition.face_encodings(img)[0]
 
         known_face_encodings = [face_encoding]
-        known_face_names = [self.user_dic[user]]
+        known_face_names = [user]
 
         face_locations = []
         face_encodings = []
         face_names = []
         process_this_frame = True
+        while self.identify_user_token <= 1:
+            try:
+                # Grab a single frame of video
+                ret, frame = video_capture.read()
+                print(f"video_capture ret = {ret}")
+                self.face_frame = frame
 
-        while True:
-            # Grab a single frame of video
-            ret, frame = video_capture.read()
-            self.face_frame = frame
+                # Resize frame of video to 1/4 size for faster face recognition processing
+                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
-            # Resize frame of video to 1/4 size for faster face recognition processing
-            small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+                rgb_small_frame = small_frame[:, :, ::-1]
 
-            # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-            rgb_small_frame = small_frame[:, :, ::-1]
-
-            # Only process every other frame of video to save time
-            if process_this_frame:
-                # Find all the faces and face encodings in the current frame of video
-                face_locations = face_recognition.face_locations(rgb_small_frame)
-                face_encodings = face_recognition.face_encodings(
-                    rgb_small_frame, face_locations
-                )
-
-                face_names = []
-                for face_encoding in face_encodings:
-                    # See if the face is a match for the known face(s)
-                    matches = face_recognition.compare_faces(
-                        known_face_encodings, face_encoding
+                # Only process every other frame of video to save time
+                if process_this_frame:
+                    # Find all the faces and face encodings in the current frame of video
+                    face_locations = face_recognition.face_locations(rgb_small_frame)
+                    face_encodings = face_recognition.face_encodings(
+                        rgb_small_frame, face_locations
                     )
-                    name = "Unknown"
 
-                    # # If a match was found in known_face_encodings, just use the first one.
-                    # if True in matches:
-                    #     first_match_index = matches.index(True)
-                    #     name = known_face_names[first_match_index]
+                    face_names = []
+                    for face_encoding in face_encodings:
+                        # See if the face is a match for the known face(s)
+                        matches = face_recognition.compare_faces(
+                            known_face_encodings, face_encoding
+                        )
+                        name = "Unknown"
 
-                    # Or instead, use the known face with the smallest distance to the new face
-                    face_distances = face_recognition.face_distance(
-                        known_face_encodings, face_encoding
-                    )
-                    best_match_index = np.argmin(face_distances)
-                    if matches[best_match_index]:
-                        name = known_face_names[best_match_index]
+                        # # If a match was found in known_face_encodings, just use the first one.
+                        # if True in matches:
+                        #     first_match_index = matches.index(True)
+                        #     name = known_face_names[first_match_index]
 
-                    face_names.append(name)
+                        # Or instead, use the known face with the smallest distance to the new face
+                        face_distances = face_recognition.face_distance(
+                            known_face_encodings, face_encoding
+                        )
+                        best_match_index = np.argmin(face_distances)
+                        if matches[best_match_index]:
+                            name = known_face_names[best_match_index]
 
-                    if name == "Unknown":
-                        print("who are you")
-                        self.identify_user = False
-                    else:
-                        self.eye_track()
-                        self.t2.kill
-                        print("hello jiwon")
-                        return 1
+                        face_names.append(name)
 
-            process_this_frame = not process_this_frame
+                        if name == "Unknown":
+                            print("who are you")
+                            self.identify_user_token += 1
+                        else:
+                            print("hello jiwon")
+                            return
+
+                process_this_frame = not process_this_frame
+            except:
+                pass
 
     def eye_track(self):
         t = time()

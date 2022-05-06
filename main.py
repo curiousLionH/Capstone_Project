@@ -31,8 +31,11 @@ class WindowClass(QMainWindow, form_class):
         # 유저 얼굴 확인 됐으면 True, 아니면 False
         self.identify_user = False
 
+        #
+
+        # 얘가 음주측정 안내, 성공 실패, 얼굴인식 다 여기서 멘트 안내.
         # 가이드 라벨 invisible
-        self.guide_after_face_check_label.setVisible(False)
+        self.user_guide_label.setVisible(False)
 
         # 카메라 시작 버튼 연결
         self.camera_start_button.clicked.connect(self.camera_show)
@@ -51,19 +54,19 @@ class WindowClass(QMainWindow, form_class):
 
         # 라벨들 가져오기
         camera_label = self.camera_show_label
-        guide_label = self.guide_after_face_check_label
+        guide_label = self.user_guide_label
 
         # 카메라 가져오기
         # 내 생각엔 이거 얼굴인식, 눈 인식, gui 표시까지
         # 다 하나의 사진으로 처리해야 되는 부분이 추가되어야 함
-        # 이렇게 다 카메라 불러오면 너무 느려   
+        # 이렇게 다 카메라 불러오면 너무 느려
         cap = cv2.VideoCapture(0)
         width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         camera_label.resize(width, height)
         guide_label.setVisible(True)
         guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
-        while not self.identify_user:
+        while True:
             ret, img = cap.read()
             if ret:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -90,13 +93,13 @@ class WindowClass(QMainWindow, form_class):
 
     # 음주측정 가이드 라벨 보여주기
     def guide_alcohol_check(self):
-        guide_label = self.guide_after_face_check_label
+        guide_label = self.user_guide_label
         guide_label.setText("음주 측정을 진행해주세요")
         guide_label.setVisible(True)
 
     # 얼굴 재인식 가이드 라벨 보여주기
     def guide_face_check_again(self):
-        guide_label = self.guide_after_face_check_label
+        guide_label = self.user_guide_label
         guide_label.setText("얼굴인식이 실패함. 재측정 요망")
         guide_label.setVisible(True)
 

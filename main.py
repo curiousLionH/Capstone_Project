@@ -116,6 +116,7 @@ class WindowClass(QMainWindow, form_class):
         guide_label.setVisible(True)
 
     def faceID(self, user="jiwon"):
+        flag = True
         print("let's start faceID")
 
         video_capture = self.cap
@@ -131,7 +132,7 @@ class WindowClass(QMainWindow, form_class):
         face_encodings = []
         face_names = []
         process_this_frame = True
-        while self.identify_user_token <= 1:
+        while self.identify_user_token <= 1 and flag:
             try:
                 # Grab a single frame of video
                 ret, frame = video_capture.read()
@@ -180,20 +181,24 @@ class WindowClass(QMainWindow, form_class):
                             self.identify_user_token += 1
                         else:
                             print("hello jiwon")
-                            return
+                            flag = False
+                            break
+                            
 
                 process_this_frame = not process_this_frame
             except:
                 pass
-
+        self.camera_start_button.setVisible(True)
         self.camera_start_button.setText("음주 측정 시작")
         self.user_guide_label.setText("음주 측정을 시작해주세요")
-        self.camera_start_button.clicked.disconnect(self.camera_start)
-        self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
+        self.camera_start_button.clicked.disconnect()
+        # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
+        # self.camera_start_button.clicked.disconnect(self.faceID_start)
 
         self.camera_start_button.clicked.connect(
             lambda: self.faceID_alcohol_start("jiwon")
         )
+        return
 
     def faceID_alcohol(self, user="jiwon"):
         print("let's start faceID")

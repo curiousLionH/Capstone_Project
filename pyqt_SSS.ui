@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1137</width>
-    <height>918</height>
+    <width>1252</width>
+    <height>880</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>440</x>
       <y>30</y>
       <width>181</width>
       <height>16</height>
@@ -33,8 +33,8 @@
    <widget class="QPushButton" name="camera_start_button">
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>480</y>
+      <x>560</x>
+      <y>770</y>
       <width>171</width>
       <height>51</height>
      </rect>
@@ -46,10 +46,10 @@
    <widget class="QLabel" name="camera_show_label">
     <property name="geometry">
      <rect>
-      <x>130</x>
-      <y>120</y>
-      <width>281</width>
-      <height>221</height>
+      <x>50</x>
+      <y>100</y>
+      <width>1041</width>
+      <height>551</height>
      </rect>
     </property>
     <property name="text">
@@ -62,8 +62,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>380</y>
+      <x>470</x>
+      <y>710</y>
       <width>341</width>
       <height>31</height>
      </rect>
@@ -87,7 +87,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1137</width>
+     <width>1252</width>
      <height>21</height>
     </rect>
    </property>

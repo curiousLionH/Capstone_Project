@@ -30,7 +30,7 @@ class WindowClass(QMainWindow, form_class):
 
         # 유저 얼굴 확인 됐으면 True, 아니면 False
         self.identify_user = False
-
+        self.user_dic = {1:"jiwon", 2:"junhwan"}
         #
 
         # 얘가 음주측정 안내, 성공 실패, 얼굴인식 다 여기서 멘트 안내.
@@ -38,7 +38,8 @@ class WindowClass(QMainWindow, form_class):
         self.user_guide_label.setVisible(False)
 
         # 카메라 시작 버튼 연결
-        self.camera_start_button.clicked.connect(self.camera_show)
+        self.camera_start_button.clicked.connect(self.camera_start)
+        self.camera_start_button.clicked.connect(lambda: self.faceID_start(1))
 
         # 얼굴인식 완료됐다고 치는 버튼
         self.temp_button_1.clicked.connect(self.guide_alcohol_check)
@@ -48,6 +49,7 @@ class WindowClass(QMainWindow, form_class):
 
         self.time = time()
         self.Eye_Track = Align_Depth_Eye_Track()
+
 
     # 카메라 보여주기
     def camera_show(self):
@@ -91,6 +93,11 @@ class WindowClass(QMainWindow, form_class):
         th.start()
         print("started..")
 
+    def faceID_start(self, user):
+        th = threading.Thread(target=self.faceID, args=(user))
+        th.start()
+        print("started..")
+
     # 음주측정 가이드 라벨 보여주기
     def guide_alcohol_check(self):
         guide_label = self.user_guide_label
@@ -104,15 +111,16 @@ class WindowClass(QMainWindow, form_class):
         guide_label.setVisible(True)
 
     def faceID(self, user="jiwon"):
+        print("let's start faceID")
 
         video_capture = cv2.VideoCapture(0)
 
-        path = "%s.jpg" % (user)
+        path = "%s.jpg" % (self.user_dic[user])
         img = face_recognition.load_image_file(path)
         face_encoding = face_recognition.face_encodings(img)[0]
 
         known_face_encodings = [face_encoding]
-        known_face_names = [user]
+        known_face_names = [self.user_dic[user]]
 
         face_locations = []
         face_encodings = []
@@ -162,7 +170,8 @@ class WindowClass(QMainWindow, form_class):
                     face_names.append(name)
 
                     if name == "Unknown":
-                        return 0
+                        print("who are you")
+                        self.identify_user = False
                     else:
                         self.eye_track()
                         self.t2.kill

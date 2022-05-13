@@ -62,6 +62,21 @@ class WindowClass(QMainWindow, form_class):
         self.time = time()
         self.Eye_Track = Align_Depth_Eye_Track()
 
+    def camera_start(self):
+        th = threading.Thread(target=self.camera_show)
+        th.start()
+        print("camera_start")
+
+    def faceID_start(self, user):
+        th = threading.Thread(target=self.faceID, args=(user,))
+        th.start()
+        print("faceID_start")
+
+    def faceID_alcohol_start(self, user):
+        th = threading.Thread(target=self.faceID_alcohol, args=(user,))
+        th.start()
+        print("faceID_alcohol_start")
+
     # 카메라 보여주기
     def camera_show(self):
 
@@ -93,38 +108,6 @@ class WindowClass(QMainWindow, form_class):
                 break
         self.cap.release()
         print("Thread end.")
-
-    # 카메라 끝
-    def camera_finish(self):
-        camera_label = self.camera_show_label
-        # 이 자리에 뭘 보여줘야 할까...
-
-    def camera_start(self):
-        th = threading.Thread(target=self.camera_show)
-        th.start()
-        print("started..")
-
-    def faceID_start(self, user):
-        th = threading.Thread(target=self.faceID, args=(user,))
-        th.start()
-        print("started..")
-
-    def faceID_alcohol_start(self, user):
-        th = threading.Thread(target=self.faceID_alcohol, args=(user,))
-        th.start()
-        print("started..")
-
-    # 음주측정 가이드 라벨 보여주기
-    def guide_alcohol_check(self):
-        guide_label = self.user_guide_label
-        guide_label.setText("음주 측정을 진행해주세요")
-        guide_label.setVisible(True)
-
-    # 얼굴 재인식 가이드 라벨 보여주기
-    def guide_face_check_again(self):
-        guide_label = self.user_guide_label
-        guide_label.setText("얼굴인식이 실패함. 재측정 요망")
-        guide_label.setVisible(True)
 
     def faceID(self, user="jiwon"):
         flag = True
@@ -314,41 +297,6 @@ class WindowClass(QMainWindow, form_class):
                 self.Eye_Track.pipeline.stop()
 
             # self.Eye_Track.main()
-
-    def TK_Face(self):
-        self.Tkinter = Tk()
-        self.label = Label(self.Tkinter, text="Face Recognition Start")
-        self.label.pack()
-        self.Tkinter.mainloop()
-        print("-----GUI running-----")
-
-    def Threading_manager(self):
-        self.t1 = threading.Thread(target=self.TK_Face, args=())
-        user = "jiwon"
-        self.t2 = threading.Thread(target=self.faceID, args=())
-
-        self.t1.start()
-        self.t2.start()
-        self.t1.join()
-        self.t2.join()
-
-    def get_id(self):
-
-        # returns id of the respective thread
-        if hasattr(self, "_thread_id"):
-            return self._thread_id
-        for id, thread in threading._active.items():
-            if thread is self:
-                return id
-
-    def raise_exception(self):
-        thread_id = self.get_id()
-        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-            thread_id, ctypes.py_object(SystemExit)
-        )
-        if res > 1:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
-            print("Exception raise failure")
 
 
 if __name__ == "__main__":

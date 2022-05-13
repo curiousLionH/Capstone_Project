@@ -132,18 +132,6 @@ class WindowClass(QMainWindow, form_class):
 
         video_capture = self.cap
 
-        data_path = ".\image"
-
-        data_list_all = os.listdir(data_path)
-
-        for data_list in data_list_all:
-            path = "%s.jpg" % (user)
-            img = face_recognition.load_image_file(path)
-            face_encoding = face_recognition.face_encodings(img)[0]
-
-        known_face_encodings = [face_encoding]
-        known_face_names = [user]
-
         face_locations = []
         face_encodings = []
         face_names = []
@@ -173,7 +161,7 @@ class WindowClass(QMainWindow, form_class):
                     for face_encoding in face_encodings:
                         # See if the face is a match for the known face(s)
                         matches = face_recognition.compare_faces(
-                            known_face_encodings, face_encoding
+                            self.known_face_encodings, face_encoding
                         )
                         name = "Unknown"
 
@@ -184,11 +172,11 @@ class WindowClass(QMainWindow, form_class):
 
                         # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(
-                            known_face_encodings, face_encoding
+                            self.known_face_encodings, face_encoding
                         )
                         best_match_index = np.argmin(face_distances)
                         if matches[best_match_index]:
-                            name = known_face_names[best_match_index]
+                            name = self.known_face_names[best_match_index]
 
                         face_names.append(name)
 
@@ -196,7 +184,7 @@ class WindowClass(QMainWindow, form_class):
                             print("who are you")
                             self.identify_user_token += 1
                         else:
-                            print("hello jiwon")
+                            print("hello " + user)
                             flag = False
                             break
 
@@ -211,7 +199,7 @@ class WindowClass(QMainWindow, form_class):
         # self.camera_start_button.clicked.disconnect(self.faceID_start)
 
         self.camera_start_button.clicked.connect(
-            lambda: self.faceID_alcohol_start("jiwon")
+            lambda: self.faceID_alcohol_start(user)
         )
         return
 
@@ -219,13 +207,6 @@ class WindowClass(QMainWindow, form_class):
         print("let's start faceID")
 
         video_capture = self.cap
-
-        path = "%s.jpg" % (user)
-        img = face_recognition.load_image_file(path)
-        face_encoding = face_recognition.face_encodings(img)[0]
-
-        known_face_encodings = [face_encoding]
-        known_face_names = [user]
 
         face_locations = []
         face_encodings = []
@@ -256,7 +237,7 @@ class WindowClass(QMainWindow, form_class):
                     for face_encoding in face_encodings:
                         # See if the face is a match for the known face(s)
                         matches = face_recognition.compare_faces(
-                            known_face_encodings, face_encoding
+                            self.known_face_encodings, face_encoding
                         )
                         name = "Unknown"
 
@@ -267,11 +248,11 @@ class WindowClass(QMainWindow, form_class):
 
                         # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(
-                            known_face_encodings, face_encoding
+                            self.known_face_encodings, face_encoding
                         )
                         best_match_index = np.argmin(face_distances)
                         if matches[best_match_index]:
-                            name = known_face_names[best_match_index]
+                            name = self.known_face_names[best_match_index]
 
                         face_names.append(name)
 
@@ -279,7 +260,7 @@ class WindowClass(QMainWindow, form_class):
                             print("who are you")
                             self.alcohol_restart = True
                         else:
-                            print("hello jiwon")
+                            print("hello " + user)
                             if self.alcohol_value:  # 음주 통과
                                 self.alcohol_pass = True
 

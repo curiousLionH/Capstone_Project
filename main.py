@@ -60,8 +60,8 @@ class WindowClass(QMainWindow, form_class):
         self.user_guide_label.setVisible(False)
 
         # 카메라 시작 버튼 연결
-        self.camera_start_button.clicked.connect(self.camera_start)
-        self.camera_start_button.clicked.connect(lambda: self.faceID_start("jiwon"))
+        # 기존에 버튼에 2개의 함수 연결하던것을 check_ID_Password로 합침
+        self.camera_start_button.clicked.connect(self.check_ID_Password)
 
         self.time = time()
         self.Eye_Track = Align_Depth_Eye_Track()
@@ -85,6 +85,32 @@ class WindowClass(QMainWindow, form_class):
         th = threading.Thread(target=self.faceID_alcohol, args=(user,))
         th.start()
         print("faceID_alcohol_start")
+
+    # 기존에 button 하나에 얼굴인식이랑 사진 보여주기를 모두 시행했던 부분을
+    # ID랑 비밀번호 체크 후에 valid 할 때에만 진행될 수 있도록 변경.
+    def check_ID_Password(self):
+
+        # 유저 이름 가져오기
+        self.user_id = self.IDTextField.text()
+        self.user_password = self.passwordTextField.text()
+        # 입력 칸 다시 비우기
+        self.IDTextField.setText("")
+        self.passwordTextField.setText("")
+
+        # 1. 유저 이름이 info.json 그니까 정보에 있는지 확인
+        # 2. 패스워드가 일치하는지 확인
+        if (self.user_id not in self.users_height_data) or (
+            self.user_password != self.users_height_data[self.user_id]["password"]
+        ):
+            self.user_guide_label.setVisible(True)
+            self.user_guide_label.setText("ID 혹은 Password를 다시 확인 해 주세요")
+            return
+
+        # 위 두 조건을 모두 패스하면 이름, 키 정보 저장하고 camera_start랑 faceID_start 실행 (쓰레드 실행)
+        self.user_name = self.users_height_data[self.user_id]["name"]
+        self.user_height = self.users_height_data[self.user_id]["height"]
+        self.camera_start()
+        self.faceID_start(self.user_name)
 
     # 카메라 보여주기
     def camera_show(self):
@@ -113,7 +139,7 @@ class WindowClass(QMainWindow, form_class):
                 pixmap = QtGui.QPixmap.fromImage(qImg)
                 camera_label.setPixmap(pixmap)
             else:
-                guide_label.setText("카메라를 불러올 수 없음")
+                guide_label.setText("카메라를 불러올 수 없습니다. 잠시 후에 다시 시도해주세요. ")
                 break
         self.cap.release()
         print("Thread end.")

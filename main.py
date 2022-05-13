@@ -17,6 +17,7 @@ from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
+import os
 
 
 # UI파일 가져오기
@@ -32,6 +33,16 @@ class WindowClass(QMainWindow, form_class):
         self.identify_user_token = 0
         self.user_dic = {0: "jiwon", 1: "junhwan"}
         self.cap = cv2.VideoCapture(0)
+
+        # faceID랑 faceID_alcohol이랑 겹치는 부분 뺐음 (사진 임베딩 하는 부분)
+        self.known_face_encodings = []
+        self.known_face_names = []
+
+        img_files = os.listdir(".\image")
+        for img_file in img_files:
+            img = face_recognition.load_image_file(img_file)
+            self.known_face_encodings.append(face_recognition.face_encodings(img)[0])
+            self.known_face_names.append(img_file[:-4])
 
         # 알코올 패스 함?
         self.alcohol_pass = False
@@ -121,9 +132,14 @@ class WindowClass(QMainWindow, form_class):
 
         video_capture = self.cap
 
-        path = "%s.jpg" % (user)
-        img = face_recognition.load_image_file(path)
-        face_encoding = face_recognition.face_encodings(img)[0]
+        data_path = ".\image"
+
+        data_list_all = os.listdir(data_path)
+
+        for data_list in data_list_all:
+            path = "%s.jpg" % (user)
+            img = face_recognition.load_image_file(path)
+            face_encoding = face_recognition.face_encodings(img)[0]
 
         known_face_encodings = [face_encoding]
         known_face_names = [user]
@@ -183,7 +199,6 @@ class WindowClass(QMainWindow, form_class):
                             print("hello jiwon")
                             flag = False
                             break
-                            
 
                 process_this_frame = not process_this_frame
             except:

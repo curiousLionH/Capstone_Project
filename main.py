@@ -66,6 +66,9 @@ class WindowClass(QMainWindow, form_class):
         self.time = time()
         self.Eye_Track = Align_Depth_Eye_Track()
 
+        # 사용자 눈 좌표
+        self.eye_pos = [0, 0, 0]
+
     def camera_start(self):
         th = threading.Thread(target=self.camera_show)
         th.start()
@@ -85,6 +88,11 @@ class WindowClass(QMainWindow, form_class):
         th = threading.Thread(target=self.faceID_alcohol, args=(user,))
         th.start()
         print("faceID_alcohol_start")
+
+    def eye_track_start(self):
+        th = threading.Thread(target=self.eye_track)
+        th.start()
+        print("eye_track_start")
 
     # 기존에 button 하나에 얼굴인식이랑 사진 보여주기를 모두 시행했던 부분을
     # ID랑 비밀번호 체크 후에 valid 할 때에만 진행될 수 있도록 변경.
@@ -211,7 +219,7 @@ class WindowClass(QMainWindow, form_class):
                 pass
         self.camera_start_button.setVisible(True)
         self.camera_start_button.setText("음주 측정 시작")
-        self.user_guide_label.setText("음주 측정을 시작해주세요")
+        self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
         self.camera_start_button.clicked.disconnect()
         # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
         # self.camera_start_button.clicked.disconnect(self.faceID_start)
@@ -292,17 +300,13 @@ class WindowClass(QMainWindow, form_class):
 
         print("좌석 조절 시작 (눈 위치 인식 시작)")
         self.camera_start_button.setVisible(True)
-        self.camera_start_button.setText("음주 측정 시작")
+        self.camera_start_button.setText("눈 위치 인식 시작")
         self.user_guide_label.setText(
-            "사용자의 안전을 위하여 좌석 조절이 진행될 예정입니다. 자연스럽게 정면을 바라봐주세요. "
+            "사용자의 안전을 위하여 좌석 및 사이드미러 조절이 진행될 예정입니다. 자연스럽게 정면을 바라봐주세요. "
         )
         self.camera_start_button.clicked.disconnect()
-        # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
-        # self.camera_start_button.clicked.disconnect(self.faceID_start)
 
-        self.camera_start_button.clicked.connect(
-            lambda: self.faceID_alcohol_start(user)
-        )
+        self.camera_start_button.clicked.connect(self.eye_track_start)
         return
 
     def eye_track(self):
@@ -311,6 +315,7 @@ class WindowClass(QMainWindow, form_class):
             self.Eye_Track.starting_camera()
             self.Eye_Track.starting_mediapipe()
 
+            # 이부분도 faceID 합친것 처럼 하나로 합쳐야 할 것 같아요
             vidcap = cv2.VideoCapture(cv2.CAP_DSHOW + 0)
             vidcap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
             vidcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
@@ -321,6 +326,9 @@ class WindowClass(QMainWindow, form_class):
                 count = 0
                 eyex_list = []
                 eyey_list = []
+                eyez_list = []
+                eye_pos_average = [0, 0, 0]
+
                 start_time = time()
                 time_limit = 100
                 flag = True
@@ -341,16 +349,58 @@ class WindowClass(QMainWindow, form_class):
                         flag = False
                     eyex_list.append(self.Eye_Track.eye[0])
                     eyey_list.append(self.Eye_Track.eye[1])
+                    eyez_list.append(self.Eye_Track.eye[2])
+
+                    # 어차피 평균 낼꺼면 이런식으로 하는게 더 효율적일 것 같아요!
+                    eye_pos_average[0] += self.Eye_Track.eye[0] / 1000
+                    eye_pos_average[1] += self.Eye_Track.eye[1] / 1000
+                    eye_pos_average[2] += self.Eye_Track.eye[2] / 1000
+
                     count += 1
 
                 self.Eye_Track.pipeline.stop()
-                print(f"Eye x coordinate average : {sum(eyex_list)/len(eyex_list)}")
-                print(f"Eye y coordinate average : {sum(eyey_list)/len(eyey_list)}")
+                self.eye_pos = eye_pos_average.copy()
 
             finally:
                 self.Eye_Track.pipeline.stop()
 
             # self.Eye_Track.main()
+
+    def calc_seat_pos(self):  # 처음 위치로부터 얼마나 이동해야 하는지 계산
+        # https://www.physiomed.co.uk/uploads/guide/file/21/Physiomed_Sitting_Guide_-_Driving_Digital.pdf
+        # 근거
+
+        # 1. 무릎 뒤쪽이 의자랑 닿지 않도록.
+        # 손가락 2개 정도의 틈이 생기면 좋다.
+
+        # 2. 무릎이 최소 20~30도 정도는 굽혀지도록
+
+        # 페달의 위치를 원점으로 (0, 0, 0)
+
+        CHAIR_HEIGHT = 45  # 의자엉덩이 높이
+        CAMERA_HEIGHT = 136  # 정확한 측정 후 수정 예정
+        INIT_SEAT_POS = 110  # 초기 의자의 위치
+
+        CONSTANT_FOR_EYE_HEAD = 0.07  # 사람 키에 대한 눈~정수리 거리
+        user_distance_between_eye_head = self.user_height * CONSTANT_FOR_EYE_HEAD
+
+        # 사용자의 앉은 키 user_sit_height = camera_height - y
+        user_sit_height = (
+            CAMERA_HEIGHT
+            - self.eye_pos[1]
+            + user_distance_between_eye_head
+            - CHAIR_HEIGHT
+        )
+
+        user_leg_length = self.user_height - user_sit_height + 3  # 사용자의 다리길이 + 신발 두께
+
+        # 자세한 설명은 정준환 노트북에 있음.
+        adjusted_seat_pos = math.sqrt(
+            (user_leg_length * math.cos(math.radians(20 / 2))) ** 2 - CHAIR_HEIGHT**2
+        )
+
+        distance_to_move = INIT_SEAT_POS - adjusted_seat_pos
+        return distance_to_move
 
 
 if __name__ == "__main__":
@@ -363,8 +413,3 @@ if __name__ == "__main__":
     myWindow.show()
     # 프로그램을 이벤트루프로 진입시키는(프로그램을 작동시키는) 코드
     app.exec_()
-
-    # Eye = Align_Depth_Eye_Track()
-    # result = GUI.faceID('jiwon')
-    # print(result)
-    myWindow.eye_track()

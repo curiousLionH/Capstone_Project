@@ -6,23 +6,32 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1183</width>
-    <height>899</height>
+    <width>1300</width>
+    <height>900</height>
    </rect>
   </property>
   <property name="cursor">
    <cursorShape>ArrowCursor</cursorShape>
   </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::DefaultContextMenu</enum>
+  </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Smart Safe Driving Seat</string>
+  </property>
+  <property name="toolButtonStyle">
+   <enum>Qt::ToolButtonIconOnly</enum>
+  </property>
+  <property name="tabShape">
+   <enum>QTabWidget::Rounded</enum>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>350</x>
-      <y>10</y>
-      <width>541</width>
+      <x>300</x>
+      <y>30</y>
+      <width>600</width>
       <height>131</height>
      </rect>
     </property>
@@ -90,7 +99,7 @@
    <widget class="QWidget" name="formLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>350</x>
+      <x>340</x>
       <y>220</y>
       <width>321</width>
       <height>51</height>
@@ -141,7 +150,6 @@
    <zorder>formLayoutWidget</zorder>
    <zorder>camera_start_button</zorder>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

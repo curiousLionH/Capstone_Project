@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
 import os
-
+import json
 
 # UI파일 가져오기
 form_class = uic.loadUiType("pyqt_SSS.ui")[0]
@@ -29,9 +29,12 @@ class WindowClass(QMainWindow, form_class):
         super().__init__()
         self.setupUi(self)
 
+        # 유저들 (조원들) 키 정보 불러오기
+        with open("./info.json", "r", encoding="UTF8") as file:
+            self.users_height_data = json.load(file)
+
         # 유저 얼굴 확인 됐으면 True, 아니면 False
         self.identify_user_token = 0
-        self.user_dic = {0: "jiwon", 1: "junhwan"}
         self.cap = cv2.VideoCapture(0)
 
         # faceID랑 faceID_alcohol이랑 겹치는 부분 뺐음 (사진 임베딩 하는 부분)
@@ -49,6 +52,7 @@ class WindowClass(QMainWindow, form_class):
         self.alcohol_restart = False
 
         # 블루투스통신값(음주측정)
+        # 0:다시불어, 1:정상, 2:음주상태
         self.alcohol_value = None
 
         # 얘가 음주측정 안내, 성공 실패, 얼굴인식 다 여기서 멘트 안내.
@@ -72,6 +76,11 @@ class WindowClass(QMainWindow, form_class):
         th.start()
         print("faceID_start")
 
+    def alcohol_value_update_start(self):
+        th = threading.Thread(target=self.alcohol_value_update)
+        th.start()
+        print("alcohol_value_update_start")
+
     def faceID_alcohol_start(self, user):
         th = threading.Thread(target=self.faceID_alcohol, args=(user,))
         th.start()
@@ -83,6 +92,8 @@ class WindowClass(QMainWindow, form_class):
         # 라벨들 가져오기
         camera_label = self.camera_show_label
         guide_label = self.user_guide_label
+        camera_label.resize(width, height)
+        guide_label.setVisible(True)
 
         # 카메라 가져오기
         # 내 생각엔 이거 얼굴인식, 눈 인식, gui 표시까지
@@ -91,8 +102,6 @@ class WindowClass(QMainWindow, form_class):
         # cap = cv2.VideoCapture(0)
         width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        camera_label.resize(width, height)
-        guide_label.setVisible(True)
         guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
         while True:
             ret, img = self.cap.read()
@@ -186,8 +195,12 @@ class WindowClass(QMainWindow, form_class):
         )
         return
 
+    # 아두이노로 부터 값을 지속적으로 갱신하는 함수
+    def alcohol_value_update(self):
+        self.alcohol_value  # = 블루투스 어쩌구 저쩌구...
+
     def faceID_alcohol(self, user="jiwon"):
-        print("let's start faceID")
+        print("let's start faceID_alcohol")
 
         video_capture = self.cap
 
@@ -243,13 +256,28 @@ class WindowClass(QMainWindow, form_class):
                             print("who are you")
                             self.alcohol_restart = True
                         else:
-                            print("hello " + user)
-                            if self.alcohol_value:  # 음주 통과
+                            print("알콜측정 얼굴인식 hello " + user)
+                            if self.alcohol_value == 1:  # 음주 통과
                                 self.alcohol_pass = True
 
                 process_this_frame = not process_this_frame
             except:
                 pass
+
+        print("좌석 조절 시작 (눈 위치 인식 시작)")
+        self.camera_start_button.setVisible(True)
+        self.camera_start_button.setText("음주 측정 시작")
+        self.user_guide_label.setText(
+            "사용자의 안전을 위하여 좌석 조절이 진행될 예정입니다. 자연스럽게 정면을 바라봐주세요. "
+        )
+        self.camera_start_button.clicked.disconnect()
+        # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
+        # self.camera_start_button.clicked.disconnect(self.faceID_start)
+
+        self.camera_start_button.clicked.connect(
+            lambda: self.faceID_alcohol_start(user)
+        )
+        return
 
     def eye_track(self):
         t = time()

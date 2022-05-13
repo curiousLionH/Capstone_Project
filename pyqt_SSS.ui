@@ -6,9 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1252</width>
-    <height>880</height>
+    <width>1183</width>
+    <height>899</height>
    </rect>
+  </property>
+  <property name="cursor">
+   <cursorShape>ArrowCursor</cursorShape>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -17,39 +20,34 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>440</x>
-      <y>30</y>
-      <width>181</width>
-      <height>16</height>
+      <x>350</x>
+      <y>10</y>
+      <width>541</width>
+      <height>131</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>26</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
     <property name="text">
-     <string>Welcome to SSS</string>
+     <string>Smart Safe Driving Seat</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QPushButton" name="camera_start_button">
-    <property name="geometry">
-     <rect>
-      <x>560</x>
-      <y>770</y>
-      <width>171</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>얼굴 인식 시작</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="camera_show_label">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>100</y>
-      <width>1041</width>
-      <height>551</height>
+      <x>90</x>
+      <y>120</y>
+      <width>1081</width>
+      <height>571</height>
      </rect>
     </property>
     <property name="text">
@@ -62,11 +60,19 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>470</x>
-      <y>710</y>
-      <width>341</width>
-      <height>31</height>
+      <x>330</x>
+      <y>720</y>
+      <width>491</width>
+      <height>61</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>14</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="autoFillBackground">
      <bool>false</bool>
@@ -81,22 +87,59 @@
      <bool>false</bool>
     </property>
    </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1252</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menu">
-    <property name="title">
-     <string>카메라_인식_파트</string>
+   <widget class="QWidget" name="formLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>350</x>
+      <y>220</y>
+      <width>321</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <layout class="QFormLayout" name="formLayout_2">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>ID</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="IDTextField"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Password</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="passwordTextField"/>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QPushButton" name="camera_start_button">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>220</y>
+      <width>71</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Login</string>
     </property>
    </widget>
-   <addaction name="menu"/>
+   <zorder>camera_show_label</zorder>
+   <zorder>label</zorder>
+   <zorder>user_guide_label</zorder>
+   <zorder>formLayoutWidget</zorder>
+   <zorder>camera_start_button</zorder>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

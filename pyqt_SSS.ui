@@ -53,8 +53,8 @@
    <widget class="QLabel" name="camera_show_label">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>120</y>
+      <x>100</x>
+      <y>150</y>
       <width>1081</width>
       <height>571</height>
      </rect>
@@ -71,8 +71,8 @@
      <rect>
       <x>330</x>
       <y>720</y>
-      <width>491</width>
-      <height>61</height>
+      <width>651</width>
+      <height>91</height>
      </rect>
     </property>
     <property name="font">
@@ -92,6 +92,12 @@
     <property name="scaledContents">
      <bool>false</bool>
     </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+    <property name="wordWrap">
+     <bool>false</bool>
+    </property>
     <property name="openExternalLinks">
      <bool>false</bool>
     </property>
@@ -107,7 +113,15 @@
     </property>
     <layout class="QFormLayout" name="formLayout_2">
      <item row="0" column="0">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="IDLabel">
+       <property name="font">
+        <font>
+         <family>맑은 고딕</family>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
        <property name="lineWidth">
         <number>0</number>
        </property>
@@ -120,7 +134,15 @@
       <widget class="QLineEdit" name="IDTextField"/>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="passwordLabel">
+       <property name="font">
+        <font>
+         <family>맑은 고딕</family>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
        <property name="text">
         <string>Password</string>
        </property>
@@ -139,6 +161,14 @@
       <width>71</width>
       <height>51</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>12</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
     </property>
     <property name="text">
      <string>Login</string>

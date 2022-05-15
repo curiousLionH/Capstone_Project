@@ -224,8 +224,14 @@ class WindowClass(QMainWindow, form_class):
                 process_this_frame = not process_this_frame
             except:
                 pass
+        # 얼굴 인식이 성공하든 실패하든 이쪽으로 넘어오게 됨
+        # face_names[-1] == user
+        # 이런식의 코드로 성공한지 실패한지 판단해야 할듯?
+
         self.camera_start_button.setVisible(True)
         self.camera_start_button.setText("음주 측정 시작")
+
+        # 이 부분도 그냥 버튼으로 하지 말고 시간초로 주는게 좋지 않을까 싶어요?
         self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
         self.camera_start_button.clicked.disconnect()
         # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
@@ -305,6 +311,7 @@ class WindowClass(QMainWindow, form_class):
             except:
                 pass
 
+        # 여기도 그냥 버튼 말고 바로 스레드 시작하는게 편하지 않을까요?
         print("좌석 조절 시작 (눈 위치 인식 시작)")
         self.camera_start_button.setVisible(True)
         self.camera_start_button.setText("눈 위치 인식 시작")
@@ -331,9 +338,6 @@ class WindowClass(QMainWindow, form_class):
                 filtered_xy = np.zeros((0, 2))
                 # f = open("average.csv", "w")
                 count = 0
-                eyex_list = []
-                eyey_list = []
-                eyez_list = []
                 eye_pos_average = [0, 0, 0]
 
                 start_time = time()
@@ -354,9 +358,6 @@ class WindowClass(QMainWindow, form_class):
                     #     flag = False
                     if count > 1000:
                         flag = False
-                    eyex_list.append(self.Eye_Track.eye[0])
-                    eyey_list.append(self.Eye_Track.eye[1])
-                    eyez_list.append(self.Eye_Track.eye[2])
 
                     # 어차피 평균 낼꺼면 이런식으로 하는게 더 효율적일 것 같아요!
                     eye_pos_average[0] += self.Eye_Track.eye[0] / 1000

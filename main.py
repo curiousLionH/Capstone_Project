@@ -120,6 +120,13 @@ class WindowClass(QMainWindow, form_class):
         self.camera_start()
         self.faceID_start(self.user_name)
 
+        # 아이디 비밀번호 입력 칸, 로그인 버튼 숨기기
+        self.IDLabel.setVisible(False)
+        self.IDTextField.setVisible(False)
+        self.passwordLabel.setVisible(False)
+        self.passwordTextField.setVisible(False)
+        self.camera_start_button.setVisible(False)
+
     # 카메라 보여주기
     def camera_show(self):
 

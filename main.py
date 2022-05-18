@@ -31,13 +31,15 @@ class WindowClass(QMainWindow, form_class):
         super().__init__()
         self.setupUi(self)
 
+        self.time = time()
+        self.Eye_Track = Align_Depth_Eye_Track()
         # 유저들 (조원들) 키 정보 불러오기
         with open("./info.json", "r", encoding="UTF8") as file:
             self.users_height_data = json.load(file)
 
         # 유저 얼굴 확인 됐으면 True, 아니면 False
         self.identify_user_token = 0
-        self.cap = cv2.VideoCapture(6)      # 0 : webcam 4: depth (d435i) 6: rgb(d435i)
+        # self.cap = cv2.VideoCapture(6)      # 0 : webcam 4: depth (d435i) 6: rgb(d435i)
 
         # faceID랑 faceID_alcohol이랑 겹치는 부분 뺐음 (사진 임베딩 하는 부분)
         self.known_face_encodings = []
@@ -74,16 +76,29 @@ class WindowClass(QMainWindow, form_class):
         # 기존에 버튼에 2개의 함수 연결하던것을 check_ID_Password로 합침
         self.camera_start_button.clicked.connect(self.check_ID_Password)
 
-        self.time = time()
-        self.Eye_Track = Align_Depth_Eye_Track()
 
         # 사용자 눈 좌표
         self.eye_pos = [0, 0, 0]
 
+    def align_depth_repeat(self):
+        while True:
+            self.Eye_Track.get_align_depth()
+            self.camera_show()
+
     def camera_start(self):
-        th = threading.Thread(target=self.camera_show)
-        th.start()
+        self.Eye_Track.starting_camera()
+        self.Eye_Track.starting_mediapipe()
         print("camera_start")
+        th = threading.Thread(target=self.align_depth_repeat)
+        th.start()
+        # while True:
+        #     self.Eye_Track.get_align_depth()
+        #     self.cap = self.Eye_Track.color_image
+
+    # def camera_start(self):
+    #     th = threading.Thread(target=self.camera_show)
+    #     th.start()
+    #     print("camera_start")
 
     def faceID_start(self, user):
         th = threading.Thread(target=self.faceID, args=(user,))
@@ -142,13 +157,13 @@ class WindowClass(QMainWindow, form_class):
     def camera_show(self):
         print("Camera show")
         
-        width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        # width = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_WIDTH)
+        # height = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
         # 라벨들 가져오기
         camera_label = self.camera_show_label
         guide_label = self.user_guide_label
-        camera_label.resize(int(width), int(height))
+        camera_label.resize(1080, 720)
         guide_label.setVisible(True)
 
         guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
@@ -159,30 +174,30 @@ class WindowClass(QMainWindow, form_class):
         # 이렇게 다 카메라 불러오면 너무 느려
         # cap = cv2.VideoCapture(0)
         while True:
-            ret, img = self.cap.read()
-            if ret:
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # ret, img = self.cap.read()
+            try:
+                # img = cv2.cvtColor(self.Eye_Track.color_image, cv2.COLOR_BGR2RGB)
+                img = self.Eye_Track.color_image
                 h, w, c = img.shape
                 qImg = QtGui.QImage(img.data, w, h, w * c, QtGui.QImage.Format_RGB888)
-                self.Eye_Track.debug_image
                 pixmap = QtGui.QPixmap.fromImage(qImg)
                 camera_label.setPixmap(pixmap)
-            else:
+            except:
                 guide_label.setText("카메라를 불러올 수 없습니다. 잠시 후에 다시 시도해주세요. ")
                 break
-        self.cap.release()
+        self.Eye_Track.color_image.release()
         print("Thread end.")
 
     def faceID(self, user="jiwon"):
 
-        self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
-        self.faceID_alcohol_start(user)
-        return              
+        # self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
+        # self.faceID_alcohol_start(user)
+        # return              
 
         flag = True
         print("let's start faceID")
 
-        video_capture = self.cap
+        # video_capture = self.cap
 
         face_locations = []
         face_encodings = []
@@ -191,12 +206,12 @@ class WindowClass(QMainWindow, form_class):
         while self.identify_user_token <= 1 and flag:
             try:
                 # Grab a single frame of video
-                ret, frame = video_capture.read()
+                # ret, frame = video_capture.read()
                 # print(f"video_capture ret = {ret}")
-                self.face_frame = frame
+                self.face_frame = self.Eye_Track.color_image
 
                 # Resize frame of video to 1/4 size for faster face recognition processing
-                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                small_frame = cv2.resize(self.Eye_Track.color_image, (0, 0), fx=0.25, fy=0.25)
 
                 # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
                 rgb_small_frame = small_frame[:, :, ::-1]
@@ -206,7 +221,7 @@ class WindowClass(QMainWindow, form_class):
                 if process_this_frame:
                     # Find all the faces and face encodings in the current frame of video
                     face_locations = face_recognition.face_locations(rgb_small_frame)
-                    print(f"rgb_small_frame: {rgb_small_frame}, face_locations: {face_locations}")
+                    # print(f"rgb_small_frame: {rgb_small_frame}, face_locations: {face_locations}")
                     face_encodings = face_recognition.face_encodings(
                         rgb_small_frame, face_locations
                     )
@@ -290,7 +305,7 @@ class WindowClass(QMainWindow, form_class):
     def faceID_alcohol(self, user="jiwon"):
         print("let's start faceID_alcohol")
 
-        video_capture = self.cap
+        video_capture = self.Eye_Track.color_image
 
         face_locations = []
         face_encodings = []
@@ -377,14 +392,14 @@ class WindowClass(QMainWindow, form_class):
     def eye_track(self):
         t = time()
         while time() - t < 1:
-            self.Eye_Track.starting_camera()
-            self.Eye_Track.starting_mediapipe()
+            # self.Eye_Track.starting_camera()
+            # self.Eye_Track.starting_mediapipe()
 
             # 이부분도 faceID 합친것 처럼 하나로 합쳐야 할 것 같아요
             # vidcap = cv2.VideoCapture(cv2.CAP_DSHOW + 0)
             # vidcap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
             # vidcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
-            vidcap = self.cap
+            vidcap = self.Eye_Track.color_image
 
             try:
                 filtered_xy = np.zeros((0, 2))
@@ -400,7 +415,7 @@ class WindowClass(QMainWindow, form_class):
                     ret, image = vidcap.read()
                     # image = cv2.rotate(image,cv2.ROTATE_90_CLOCKWISE)
 
-                    self.Eye_Track.get_align_depth()
+                    # self.Eye_Track.get_align_depth()
                     self.Eye_Track.face_detect()
                     self.Eye_Track.main()
                     # if flag and self.Eye_Track.eye[0] > 0:

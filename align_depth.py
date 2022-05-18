@@ -19,10 +19,12 @@ class Align_Depth_Eye_Track():
         self.eye = np.zeros((3,1))
         # self.A, self.B, self.C = [0, 0, 0]
         self.debug_image = None
+        self.color_image = None
 
     def starting_camera(self):
         # Create a pipeline
         self.pipeline = rs.pipeline()
+        # print(self.pipeline)
 
         # Create a config and configure the pipeline to stream
         #  different resolutions of color and depth streams
@@ -32,7 +34,7 @@ class Align_Depth_Eye_Track():
         self.pipeline_wrapper = rs.pipeline_wrapper(self.pipeline)
         self.pipeline_profile = self.config.resolve(self.pipeline_wrapper)
         self.device = self.pipeline_profile.get_device()
-        print(self.device)
+        # print(self.device)
         self.device_product_line = str(self.device.get_info(rs.camera_info.product_line))
 
         self.found_rgb = False
@@ -69,6 +71,7 @@ class Align_Depth_Eye_Track():
         # The "align_to" is the stream type to which we plan to align depth frames.
         self.align_to = rs.stream.color
         self.align = rs.align(self.align_to)
+        
 
     def starting_mediapipe(self):
         parser = argparse.ArgumentParser()
@@ -90,6 +93,7 @@ class Align_Depth_Eye_Track():
         self.cvFpsCalc = CvFpsCalc(buffer_len=10)
     
     def get_align_depth(self):
+        # print("get_align_depth!!!!")
         # Streaming loop
         # Get frameset of color and depth
         frames = self.pipeline.wait_for_frames()
@@ -109,28 +113,35 @@ class Align_Depth_Eye_Track():
         self.depth_image = np.asanyarray(self.aligned_depth_frame.get_data())
         self.distort_correction_depth = self.depth_image/(np.cos(self.alpha)*np.cos(self.beta))
         self.color_image = np.asanyarray(self.color_frame.get_data())
+        # print(f"color_image: {self.color_image}")
+        # cv2.imshow("colorimg", self.color_image)
     
     def face_detect(self):
         display_fps = self.cvFpsCalc.get()
         image = self.color_image
         self.debug_image = copy.deepcopy(image)
+        # print(f"image: {self.debug_image}")
+        # cv2.imshow("dbimg", self.debug_image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         results = self.face_detection.process(image)
 
         self.left_eye, self.right_eye = np.array([0,0]), np.array([0,0])
 
         if results.detections is not None:
+            # print("detection success")
+            # print(results.detections)
             for detection in results.detections:
+                # print(detection)
                 # 描画
-                debug_image, self.left_eye, self.right_eye = self.draw_detection(debug_image, detection)
+                self.debug_image, self.left_eye, self.right_eye = self.draw_detection(self.debug_image, detection)
 
-        cv2.putText(debug_image, "FPS:" + str(display_fps), (10, 30),
-                   cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.putText(self.debug_image, "FPS:" + str(display_fps), (10, 30),
+        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2, cv2.LINE_AA)
         # キー処理(ESC：終了) #################################################
         cv2.waitKey(1)
 
         # 画面反映 #############################################################
-        cv2.imshow('MediaPipe Face Detection Demo', debug_image)
+        cv2.imshow('MediaPipe Face Detection Demo', self.debug_image)
         
     
     def draw_detection(self,image,detection):
@@ -174,7 +185,7 @@ class Align_Depth_Eye_Track():
         self.eye = np.array([Eye_coord_x,Eye_coord_y,Eye_coord_z]).reshape(3,2)
 
         self.total, self.eye = np.array([x_Coord,y_Coord,z_Coord]), self.eye.mean(axis=1)
-               
+
         # self.total = np.dot(rot_y_20,np.dot(rot_x_20,np.array([x_Coord.reshape(-1),y_Coord.reshape(-1),z_Coord.reshape(-1)])))
         # self.eye = np.dot(rot_y_20,np.dot(rot_x_20,self.eye))
         self.total = np.dot(rot_x_20,np.array([x_Coord.reshape(-1),y_Coord.reshape(-1),z_Coord.reshape(-1)]))
@@ -188,8 +199,14 @@ class Align_Depth_Eye_Track():
         self.eye[1] = self.eye[1] - self.y_cal
         self.eye[2] = self.eye[2] - self.z_cal
 
-        print(self.eye)
+        # eye coord calibration
 
+
+        self.eye[0] /= 10
+        self.eye[1] /= 10 
+        self.eye[2] /= 10
+
+        print(self.eye)
         # 3D plot
         # self.plotCoord(self.total,self.eye)
 

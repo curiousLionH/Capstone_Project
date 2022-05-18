@@ -156,7 +156,7 @@
    <widget class="QPushButton" name="camera_start_button">
     <property name="geometry">
      <rect>
-      <x>690</x>
+      <x>710</x>
       <y>220</y>
       <width>71</width>
       <height>51</height>

@@ -2,6 +2,7 @@
 from time import time, sleep
 import math
 import random
+import serial
 
 # import matplotlib.pyplot as plt
 import argparse
@@ -52,6 +53,12 @@ class WindowClass(QMainWindow, form_class):
             self.known_face_names.append(img_file[:-4])
 
         # 알코올 패스 함?
+        self.ser = serial.Serial(
+            # port='/dev/cu.HC-06-DevB',
+            port='/dev/ttyACM1',
+            baudrate=9600,
+        )
+
         self.alcohol_pass = False
         self.alcohol_restart = False
 
@@ -167,6 +174,11 @@ class WindowClass(QMainWindow, form_class):
         print("Thread end.")
 
     def faceID(self, user="jiwon"):
+
+        self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
+        self.faceID_alcohol_start(user)
+        return              
+
         flag = True
         print("let's start faceID")
 
@@ -189,15 +201,18 @@ class WindowClass(QMainWindow, form_class):
                 # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
                 rgb_small_frame = small_frame[:, :, ::-1]
 
+
                 # Only process every other frame of video to save time
                 if process_this_frame:
                     # Find all the faces and face encodings in the current frame of video
                     face_locations = face_recognition.face_locations(rgb_small_frame)
+                    print(f"rgb_small_frame: {rgb_small_frame}, face_locations: {face_locations}")
                     face_encodings = face_recognition.face_encodings(
                         rgb_small_frame, face_locations
                     )
 
                     face_names = []
+                    # print(face_encodings)
                     for face_encoding in face_encodings:
                         # See if the face is a match for the known face(s)
                         matches = face_recognition.compare_faces(
@@ -235,24 +250,43 @@ class WindowClass(QMainWindow, form_class):
         # face_names[-1] == user
         # 이런식의 코드로 성공한지 실패한지 판단해야 할듯?
 
-        self.camera_start_button.setVisible(True)
-        self.camera_start_button.setText("음주 측정 시작")
+        # self.camera_start_button.setVisible(True)
+        # self.camera_start_button.setText("음주 측정 시작")
 
         # 이 부분도 그냥 버튼으로 하지 말고 시간초로 주는게 좋지 않을까 싶어요?
         self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
-        self.camera_start_button.clicked.disconnect()
+        # self.camera_start_button.clicked.disconnect()
         # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
         # self.camera_start_button.clicked.disconnect(self.faceID_start)
 
-        self.camera_start_button.clicked.connect(
-            lambda: self.faceID_alcohol_start(user)
-        )
+        # self.camera_start_button.clicked.connect(
+        #     lambda: self.faceID_alcohol_start(user)
+        # )
+        self.faceID_alcohol_start(user)
         return
 
     # 아두이노로 부터 값을 지속적으로 갱신하는 함수
     def alcohol_value_update(self):
-        self.alcohol_value  = random.randrange(0,3)
 
+        while True:
+            temp_list = []
+            while self.ser.readable():
+                a = self.ser.read().decode()
+                if (a == '\n'):
+                    break
+                temp_list.append(a)
+            print(temp_list)
+            try:
+                if (temp_list[0] == 'A'):
+                    self.alcohol_value = int(temp_list[1])
+                    print(f"Alcohol state : {self.alcohol_value}")
+                    break
+            except:
+                pass
+
+
+        # self.alcohol_value  = random.randrange(0,3)
+        
     def faceID_alcohol(self, user="jiwon"):
         print("let's start faceID_alcohol")
 
@@ -266,7 +300,7 @@ class WindowClass(QMainWindow, form_class):
             try:
                 # Grab a single frame of video
                 ret, frame = video_capture.read()
-                print(f"video_capture ret = {ret}")
+                # print(f"video_capture ret = {ret}")
                 self.face_frame = frame
 
                 # Resize frame of video to 1/4 size for faster face recognition processing
@@ -276,7 +310,7 @@ class WindowClass(QMainWindow, form_class):
                 rgb_small_frame = small_frame[:, :, ::-1]
 
                 # Only process every other frame of video to save time
-                if process_this_frame:
+                if process_this_frame and False:
                     # Find all the faces and face encodings in the current frame of video
                     face_locations = face_recognition.face_locations(rgb_small_frame)
                     face_encodings = face_recognition.face_encodings(
@@ -313,22 +347,31 @@ class WindowClass(QMainWindow, form_class):
                             print("알콜측정 얼굴인식 hello " + user)
                             self.alcohol_value_update()
                             if self.alcohol_value == 1:  # 음주 통과
+                                print("ALCOHOL PASS!!!")
                                 self.alcohol_pass = True
+
+                    
 
                 process_this_frame = not process_this_frame
             except:
                 pass
 
+            self.alcohol_value_update()
+            if self.alcohol_value == 1:  # 음주 통과
+                print("ALCOHOL PASS!!!")
+                self.alcohol_pass = True
         # 여기도 그냥 버튼 말고 바로 스레드 시작하는게 편하지 않을까요?
         print("좌석 조절 시작 (눈 위치 인식 시작)")
-        self.camera_start_button.setVisible(True)
-        self.camera_start_button.setText("눈 위치 인식 시작")
+        # self.camera_start_button.setVisible(True)
+        # self.camera_start_button.setText("눈 위치 인식 시작")
         self.user_guide_label.setText(
             "사용자의 안전을 위하여 좌석 및 사이드미러 조절이 진행될 예정입니다. 자연스럽게 정면을 바라봐주세요. "
         )
-        self.camera_start_button.clicked.disconnect()
+        # self.camera_start_button.clicked.disconnect()
 
-        self.camera_start_button.clicked.connect(self.eye_track_start)
+        # self.camera_start_button.clicked.connect(self.eye_track_start)
+        # time.sleep(2)
+        self.eye_track_start()
         return
 
     def eye_track(self):
@@ -338,9 +381,10 @@ class WindowClass(QMainWindow, form_class):
             self.Eye_Track.starting_mediapipe()
 
             # 이부분도 faceID 합친것 처럼 하나로 합쳐야 할 것 같아요
-            vidcap = cv2.VideoCapture(cv2.CAP_DSHOW + 0)
-            vidcap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
-            vidcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
+            # vidcap = cv2.VideoCapture(cv2.CAP_DSHOW + 0)
+            # vidcap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
+            # vidcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
+            vidcap = self.cap
 
             try:
                 filtered_xy = np.zeros((0, 2))

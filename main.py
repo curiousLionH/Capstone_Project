@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from time import time, sleep
 import math
+import random
 
 # import matplotlib.pyplot as plt
 import argparse
@@ -35,15 +36,18 @@ class WindowClass(QMainWindow, form_class):
 
         # 유저 얼굴 확인 됐으면 True, 아니면 False
         self.identify_user_token = 0
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(6)      # 0 : webcam 4: depth (d435i) 6: rgb(d435i)
 
         # faceID랑 faceID_alcohol이랑 겹치는 부분 뺐음 (사진 임베딩 하는 부분)
         self.known_face_encodings = []
         self.known_face_names = []
 
-        img_files = os.listdir(".\image")
+        img_files = os.listdir("image")
+        # print(f"file names : {img_files}")
         for img_file in img_files:
-            img = face_recognition.load_image_file(img_file)
+            # print(f"file name : {img_file}")
+            img = face_recognition.load_image_file("image/"+img_file)
+            # print(face_recognition.face_encodings(img)[0])
             self.known_face_encodings.append(face_recognition.face_encodings(img)[0])
             self.known_face_names.append(img_file[:-4])
 
@@ -129,21 +133,24 @@ class WindowClass(QMainWindow, form_class):
 
     # 카메라 보여주기
     def camera_show(self):
+        print("Camera show")
+        
+        width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
         # 라벨들 가져오기
         camera_label = self.camera_show_label
         guide_label = self.user_guide_label
-        camera_label.resize(width, height)
+        camera_label.resize(int(width), int(height))
         guide_label.setVisible(True)
+
+        guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
 
         # 카메라 가져오기
         # 내 생각엔 이거 얼굴인식, 눈 인식, gui 표시까지
         # 다 하나의 사진으로 처리해야 되는 부분이 추가되어야 함
         # 이렇게 다 카메라 불러오면 너무 느려
         # cap = cv2.VideoCapture(0)
-        width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
         while True:
             ret, img = self.cap.read()
             if ret:
@@ -173,7 +180,7 @@ class WindowClass(QMainWindow, form_class):
             try:
                 # Grab a single frame of video
                 ret, frame = video_capture.read()
-                print(f"video_capture ret = {ret}")
+                # print(f"video_capture ret = {ret}")
                 self.face_frame = frame
 
                 # Resize frame of video to 1/4 size for faster face recognition processing
@@ -244,7 +251,7 @@ class WindowClass(QMainWindow, form_class):
 
     # 아두이노로 부터 값을 지속적으로 갱신하는 함수
     def alcohol_value_update(self):
-        self.alcohol_value  # = 블루투스 어쩌구 저쩌구...
+        self.alcohol_value  = random.randrange(0,3)
 
     def faceID_alcohol(self, user="jiwon"):
         print("let's start faceID_alcohol")
@@ -304,6 +311,7 @@ class WindowClass(QMainWindow, form_class):
                             self.alcohol_restart = True
                         else:
                             print("알콜측정 얼굴인식 hello " + user)
+                            self.alcohol_value_update()
                             if self.alcohol_value == 1:  # 음주 통과
                                 self.alcohol_pass = True
 

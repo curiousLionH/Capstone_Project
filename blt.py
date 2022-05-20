@@ -1,21 +1,25 @@
 import serial
 import time
 
-ser = serial.Serial(
-    # port='/dev/cu.HC-06-DevB',
-    port= 'COM1',    # Port Number
-    baudrate=9600,
-)
+# ser = serial.Serial(
+#     # port='/dev/cu.HC-06-DevB',
+#     port="COM3",  # Port Number
+#     baudrate=9600,
+# )
 
-A = "12"
-B = "34"
-C = "56"
+ser = serial.Serial("COM3", 9600)
+
+A = "34"
+B = "56"
+C = "78"
 
 Trans = "Q" + A + B + C
-print(f"sending data {Trans} ...")
+
 Trans = Trans.encode("utf-8")
+print(f"sending data {Trans} ...")
 
 starttime = time.time()
 
-while (time.time() - starttime) <= 2:
+while True:
     ser.write(Trans)
+    time.sleep(1)

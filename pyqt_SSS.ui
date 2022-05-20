@@ -29,16 +29,16 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>160</x>
       <y>30</y>
-      <width>600</width>
+      <width>931</width>
       <height>131</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>맑은 고딕</family>
-      <pointsize>26</pointsize>
+      <pointsize>48</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -53,14 +53,14 @@
    <widget class="QLabel" name="camera_show_label">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>150</y>
-      <width>1081</width>
-      <height>571</height>
+      <x>340</x>
+      <y>220</y>
+      <width>640</width>
+      <height>480</height>
      </rect>
     </property>
     <property name="text">
-     <string>카메라 사진이 보여질 공간</string>
+     <string/>
     </property>
    </widget>
    <widget class="QLabel" name="user_guide_label">
@@ -69,9 +69,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>10</x>
       <y>720</y>
-      <width>651</width>
+      <width>1281</width>
       <height>91</height>
      </rect>
     </property>
@@ -105,8 +105,8 @@
    <widget class="QWidget" name="formLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>340</x>
-      <y>220</y>
+      <x>450</x>
+      <y>390</y>
       <width>321</width>
       <height>51</height>
      </rect>
@@ -156,8 +156,8 @@
    <widget class="QPushButton" name="camera_start_button">
     <property name="geometry">
      <rect>
-      <x>710</x>
-      <y>220</y>
+      <x>820</x>
+      <y>390</y>
       <width>71</width>
       <height>51</height>
      </rect>

@@ -1,0 +1,4 @@
+1.
+align_depth.py 에서 보면
+제일 아래 name == main 에서
+vidcap을 받고 그걸로 image도 만들었는데 출력하는 과정이 없다???

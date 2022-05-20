@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from time import time, sleep
 import math
-import random
 import serial
 
 # import matplotlib.pyplot as plt
@@ -11,7 +10,6 @@ from align_depth import Align_Depth_Eye_Track
 import face_recognition
 import cv2
 import numpy as np
-from tkinter import *
 import threading
 import ctypes
 import sys
@@ -31,7 +29,6 @@ class WindowClass(QMainWindow, form_class):
         super().__init__()
         self.setupUi(self)
 
-        self.time = time()
         self.Eye_Track = Align_Depth_Eye_Track()
         # 유저들 (조원들) 키 정보 불러오기
         with open("./info.json", "r", encoding="UTF8") as file:
@@ -41,28 +38,25 @@ class WindowClass(QMainWindow, form_class):
         self.identify_user_token = 0
         # self.cap = cv2.VideoCapture(6)      # 0 : webcam 4: depth (d435i) 6: rgb(d435i)
 
-        # faceID랑 faceID_alcohol이랑 겹치는 부분 뺐음 (사진 임베딩 하는 부분)
+        # 사진 임베딩 하는 부분
         self.known_face_encodings = []
         self.known_face_names = []
 
         img_files = os.listdir("image")
-        # print(f"file names : {img_files}")
         for img_file in img_files:
-            # print(f"file name : {img_file}")
-            img = face_recognition.load_image_file("image/"+img_file)
-            # print(face_recognition.face_encodings(img)[0])
+            img = face_recognition.load_image_file("image/" + img_file)
             self.known_face_encodings.append(face_recognition.face_encodings(img)[0])
             self.known_face_names.append(img_file[:-4])
 
-        # 알코올 패스 함?
+        # 아두이노랑 시리얼 포트 연결
         self.ser = serial.Serial(
             # port='/dev/cu.HC-06-DevB',
-            port='/dev/ttyACM1',
+            port="/dev/ttyACM1",
             baudrate=9600,
         )
 
+        # 알코올 패스 함?
         self.alcohol_pass = False
-        self.alcohol_restart = False
 
         # 블루투스통신값(음주측정)
         # 0:다시불어, 1:정상, 2:음주상태
@@ -76,6 +70,8 @@ class WindowClass(QMainWindow, form_class):
         # 기존에 버튼에 2개의 함수 연결하던것을 check_ID_Password로 합침
         self.camera_start_button.clicked.connect(self.check_ID_Password)
 
+        # 비밀번호 입력창 숫자 숨겨주기
+        self.passwordTextField.setEchoMode(QtGui.QLineEdit.Password)
 
         # 사용자 눈 좌표
         self.eye_pos = [0, 0, 0]
@@ -156,7 +152,7 @@ class WindowClass(QMainWindow, form_class):
     # 카메라 보여주기
     def camera_show(self):
         print("Camera show")
-        
+
         # width = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_WIDTH)
         # height = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
@@ -169,9 +165,6 @@ class WindowClass(QMainWindow, form_class):
         guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
 
         # 카메라 가져오기
-        # 내 생각엔 이거 얼굴인식, 눈 인식, gui 표시까지
-        # 다 하나의 사진으로 처리해야 되는 부분이 추가되어야 함
-        # 이렇게 다 카메라 불러오면 너무 느려
         # cap = cv2.VideoCapture(0)
         while True:
             # ret, img = self.cap.read()
@@ -192,7 +185,7 @@ class WindowClass(QMainWindow, form_class):
 
         # self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
         # self.faceID_alcohol_start(user)
-        # return              
+        # return
 
         flag = True
         print("let's start faceID")
@@ -201,7 +194,6 @@ class WindowClass(QMainWindow, form_class):
 
         face_locations = []
         face_encodings = []
-        face_names = []
         process_this_frame = True
         while self.identify_user_token <= 1 and flag:
             try:
@@ -211,11 +203,12 @@ class WindowClass(QMainWindow, form_class):
                 self.face_frame = self.Eye_Track.color_image
 
                 # Resize frame of video to 1/4 size for faster face recognition processing
-                small_frame = cv2.resize(self.Eye_Track.color_image, (0, 0), fx=0.25, fy=0.25)
+                small_frame = cv2.resize(
+                    self.Eye_Track.color_image, (0, 0), fx=0.25, fy=0.25
+                )
 
                 # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
                 rgb_small_frame = small_frame[:, :, ::-1]
-
 
                 # Only process every other frame of video to save time
                 if process_this_frame:
@@ -226,7 +219,6 @@ class WindowClass(QMainWindow, form_class):
                         rgb_small_frame, face_locations
                     )
 
-                    face_names = []
                     # print(face_encodings)
                     for face_encoding in face_encodings:
                         # See if the face is a match for the known face(s)
@@ -248,8 +240,6 @@ class WindowClass(QMainWindow, form_class):
                         if matches[best_match_index]:
                             name = self.known_face_names[best_match_index]
 
-                        face_names.append(name)
-
                         if name == "Unknown":
                             print("who are you")
                             self.identify_user_token += 1
@@ -269,122 +259,65 @@ class WindowClass(QMainWindow, form_class):
         # self.camera_start_button.setText("음주 측정 시작")
 
         # 이 부분도 그냥 버튼으로 하지 말고 시간초로 주는게 좋지 않을까 싶어요?
-        self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
-        # self.camera_start_button.clicked.disconnect()
-        # self.camera_start_button.clicked.disconnect(lambda: self.faceID_start("jiwon"))
-        # self.camera_start_button.clicked.disconnect(self.faceID_start)
-
-        # self.camera_start_button.clicked.connect(
-        #     lambda: self.faceID_alcohol_start(user)
-        # )
+        self.user_guide_label.setText("사용자 인식이 완료되었습니다. 10초 이내에 음주 측정을 완료해주세요")
         self.faceID_alcohol_start(user)
         return
 
     # 아두이노로 부터 값을 지속적으로 갱신하는 함수
     def alcohol_value_update(self):
-
-        while True:
+        start_time = time()
+        # 조금 여유롭게 15초동안 실행
+        while time() - start_time < 15:
             temp_list = []
             while self.ser.readable():
                 a = self.ser.read().decode()
-                if (a == '\n'):
+                if a == "\n":
                     break
                 temp_list.append(a)
             print(temp_list)
             try:
-                if (temp_list[0] == 'A'):
+                # 기존 코드대로 짜면 아두이노에서 값을 읽자마자 브레이크 되어버림
+                # A1이 나올때까지 값을 읽거나 시간제한을 두거나 하는방식으로 바꿔봄
+
+                # if temp_list[0] == "A":
+                #     self.alcohol_value = int(temp_list[1])
+                #     print(f"Alcohol state : {self.alcohol_value}")
+                #     break
+
+                if temp_list[0] == "A":
                     self.alcohol_value = int(temp_list[1])
-                    print(f"Alcohol state : {self.alcohol_value}")
-                    break
+                    if self.alcohol_value == 0:
+                        self.user_guide_label.setText("다시 불어줘요")
+                    elif self.alcohol_value == 2:
+                        self.user_guide_label.setText("술마시면 안돼용")
+                        # 프로그램 자체 종료해버리는 무언가...
+                        sys.exit()
+                    else:
+                        self.user_guide_label.setText("통과!")
+                        self.alcohol_pass = True
+
+                        # 더이상 값을 읽어올 필요가 없다.
+                        break
+                    pass
             except:
                 pass
 
-
-        # self.alcohol_value  = random.randrange(0,3)
-        
     def faceID_alcohol(self, user="jiwon"):
         print("let's start faceID_alcohol")
-
-        video_capture = self.Eye_Track.color_image
-
-        face_locations = []
-        face_encodings = []
-        face_names = []
-        process_this_frame = True
+        start_time = time()
         while not self.alcohol_pass:
-            try:
-                # Grab a single frame of video
-                ret, frame = video_capture.read()
-                # print(f"video_capture ret = {ret}")
-                self.face_frame = frame
+            # alcohol_value_update method에서 값 처리까지 다 하니까 이거만 해도 됨
+            self.alcohol_value_update_start()
 
-                # Resize frame of video to 1/4 size for faster face recognition processing
-                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+            # 10초안에 음주측정 통과 못할시 프로그램 종료
+            if time() - start_time > 10:
+                sys.exit()
 
-                # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-                rgb_small_frame = small_frame[:, :, ::-1]
-
-                # Only process every other frame of video to save time
-                if process_this_frame and False:
-                    # Find all the faces and face encodings in the current frame of video
-                    face_locations = face_recognition.face_locations(rgb_small_frame)
-                    face_encodings = face_recognition.face_encodings(
-                        rgb_small_frame, face_locations
-                    )
-
-                    face_names = []
-                    for face_encoding in face_encodings:
-                        # See if the face is a match for the known face(s)
-                        matches = face_recognition.compare_faces(
-                            self.known_face_encodings, face_encoding
-                        )
-                        name = "Unknown"
-
-                        # # If a match was found in known_face_encodings, just use the first one.
-                        # if True in matches:
-                        #     first_match_index = matches.index(True)
-                        #     name = known_face_names[first_match_index]
-
-                        # Or instead, use the known face with the smallest distance to the new face
-                        face_distances = face_recognition.face_distance(
-                            self.known_face_encodings, face_encoding
-                        )
-                        best_match_index = np.argmin(face_distances)
-                        if matches[best_match_index]:
-                            name = self.known_face_names[best_match_index]
-
-                        face_names.append(name)
-
-                        if name == "Unknown":
-                            print("who are you")
-                            self.alcohol_restart = True
-                        else:
-                            print("알콜측정 얼굴인식 hello " + user)
-                            self.alcohol_value_update()
-                            if self.alcohol_value == 1:  # 음주 통과
-                                print("ALCOHOL PASS!!!")
-                                self.alcohol_pass = True
-
-                    
-
-                process_this_frame = not process_this_frame
-            except:
-                pass
-
-            self.alcohol_value_update()
-            if self.alcohol_value == 1:  # 음주 통과
-                print("ALCOHOL PASS!!!")
-                self.alcohol_pass = True
-        # 여기도 그냥 버튼 말고 바로 스레드 시작하는게 편하지 않을까요?
         print("좌석 조절 시작 (눈 위치 인식 시작)")
-        # self.camera_start_button.setVisible(True)
-        # self.camera_start_button.setText("눈 위치 인식 시작")
         self.user_guide_label.setText(
             "사용자의 안전을 위하여 좌석 및 사이드미러 조절이 진행될 예정입니다. 자연스럽게 정면을 바라봐주세요. "
         )
-        # self.camera_start_button.clicked.disconnect()
 
-        # self.camera_start_button.clicked.connect(self.eye_track_start)
         # time.sleep(2)
         self.eye_track_start()
         return
@@ -399,6 +332,8 @@ class WindowClass(QMainWindow, form_class):
             # vidcap = cv2.VideoCapture(cv2.CAP_DSHOW + 0)
             # vidcap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
             # vidcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
+
+            # vidcap은 이미지가 아니라 카메라라서 이렇게 하면 틀리지 않나요??
             vidcap = self.Eye_Track.color_image
 
             try:
@@ -473,9 +408,56 @@ class WindowClass(QMainWindow, form_class):
         adjusted_seat_pos = math.sqrt(
             (user_leg_length * math.cos(math.radians(20 / 2))) ** 2 - CHAIR_HEIGHT**2
         )
-
+        # 움직여야 하는 거리를 기어비를 통해 회전수로 변환
         distance_to_move = INIT_SEAT_POS - adjusted_seat_pos
-        return distance_to_move
+        number_of_rev = int((32 * distance_to_move) / 20.72)
+
+        return number_of_rev
+
+    def calc_side_angle(self):
+
+        # 단위: cm
+        l = 200
+        l_1 = 10
+        l_s = 15
+        m = l_1 + l_s / 5
+        k = 45
+        z = self.eye_pos[2]
+
+        y_axis = 136 - 90
+        y = self.eye_pos[1]
+
+        best_angle = 360
+        for i in range(90):
+            error = i / 180 * math.pi * 2 - (
+                np.arctan(
+                    (l - m * np.cos(i / 180 * math.pi))
+                    / (m * np.sin(i / 180 * math.pi))
+                )
+                + np.arctan(
+                    (z - m * np.cos(i / 180 * math.pi))
+                    / (k + m * np.sin(i / 180 * math.pi))
+                )
+            )
+            best_angle = min(best_angle, np.absolute(error))
+
+        theta1 = int(best_angle)  # degree
+        theta2 = int(
+            np.arctan((y_axis - y) / (z - m * math.cos(theta1))) / 2 * 180 / math.pi
+        )  # degree
+        return theta1, theta2
+
+    def send_data(self):
+        A = str(self.calc_seat_pos())
+        B, C = map(str, self.calc_side_angle())
+
+        Trans = "Q" + A + B + C
+        Trans = Trans.encode("utf-8")
+
+        starttime = time()
+
+        while (time() - starttime) <= 2:
+            self.ser.write(Trans)
 
 
 if __name__ == "__main__":

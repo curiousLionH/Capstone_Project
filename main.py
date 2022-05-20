@@ -77,8 +77,9 @@ class WindowClass(QMainWindow, form_class):
         self.eye_pos = [0, 0, 0]
 
     def align_depth_repeat(self):
+        self.Eye_Track.get_align_depth()
         while True:
-            self.Eye_Track.get_align_depth()
+            # self.Eye_Track.get_align_depth()
             self.camera_show()
 
     def camera_start(self):
@@ -189,6 +190,7 @@ class WindowClass(QMainWindow, form_class):
 
         flag = True
         print("let's start faceID")
+        
 
         # video_capture = self.cap
 
@@ -196,6 +198,7 @@ class WindowClass(QMainWindow, form_class):
         face_encodings = []
         process_this_frame = True
         while self.identify_user_token <= 1 and flag:
+            self.Eye_Track.get_align_depth()
             try:
                 # Grab a single frame of video
                 # ret, frame = video_capture.read()

@@ -93,7 +93,7 @@ class Align_Depth_Eye_Track():
         self.cvFpsCalc = CvFpsCalc(buffer_len=10)
     
     def get_align_depth(self):
-        print("get_align_depth!!!!")
+        # print("get_align_depth!!!!")
         # Streaming loop
         # Get frameset of color and depth
         frames = self.pipeline.wait_for_frames()
@@ -141,7 +141,7 @@ class Align_Depth_Eye_Track():
         cv2.waitKey(1)
 
         # 画面反映 #############################################################
-        cv2.imshow('MediaPipe Face Detection Demo', self.debug_image)
+        # cv2.imshow('MediaPipe Face Detection Demo', self.debug_image)
         
     
     def draw_detection(self,image,detection):

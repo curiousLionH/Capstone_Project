@@ -2,7 +2,7 @@ import serial
 
 ser = serial.Serial(
     # port='/dev/cu.HC-06-DevB',
-    port='/dev/ttyACM1',
+    port='/dev/ttyACM0',
     baudrate=9600,
 )
 

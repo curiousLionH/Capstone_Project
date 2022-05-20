@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from time import time, sleep
+import time
 import math
 import serial
 
@@ -48,10 +48,15 @@ class WindowClass(QMainWindow, form_class):
             self.known_face_encodings.append(face_recognition.face_encodings(img)[0])
             self.known_face_names.append(img_file[:-4])
 
-        # 아두이노랑 시리얼 포트 연결
+        # 아두이노랑 시리얼 포트 연결 (ser : alcohol / ser2 : seat, mirror)
         self.ser = serial.Serial(
             # port='/dev/cu.HC-06-DevB',
             port='/dev/ttyACM0',
+            baudrate=9600,
+        )
+        self.ser2 = serial.Serial(
+            # port='/dev/cu.HC-06-DevB',
+            port='/dev/ttyACM1',
             baudrate=9600,
         )
 
@@ -70,23 +75,21 @@ class WindowClass(QMainWindow, form_class):
         # 기존에 버튼에 2개의 함수 연결하던것을 check_ID_Password로 합침
         self.camera_start_button.clicked.connect(self.check_ID_Password)
 
-        # 비밀번호 입력창 숫자 숨겨주기
-        self.passwordTextField.setEchoMode(QtGui.QLineEdit.Password)
-
         # 사용자 눈 좌표
         self.eye_pos = [0, 0, 0]
 
     def align_depth_repeat(self):
-        self.Eye_Track.get_align_depth()
+        # self.Eye_Track.get_align_depth()
         while True:
-            # self.Eye_Track.get_align_depth()
+            self.Eye_Track.get_align_depth()
             self.camera_show()
 
     def camera_start(self):
         self.Eye_Track.starting_camera()
         self.Eye_Track.starting_mediapipe()
+        self.Eye_Track.get_align_depth()
         print("camera_start")
-        th = threading.Thread(target=self.align_depth_repeat)
+        th = threading.Thread(target=self.camera_show)
         th.start()
         # while True:
         #     self.Eye_Track.get_align_depth()
@@ -105,7 +108,7 @@ class WindowClass(QMainWindow, form_class):
     def alcohol_value_update_start(self):
         th = threading.Thread(target=self.alcohol_value_update)
         th.start()
-        print("alcohol_value_update_start")
+        # print("alcohol_value_update_start")
 
     def faceID_alcohol_start(self, user):
         th = threading.Thread(target=self.faceID_alcohol, args=(user,))
@@ -117,6 +120,10 @@ class WindowClass(QMainWindow, form_class):
         th.start()
         print("eye_track_start")
 
+    def send_data_start(self):
+        th = threading.Thread(target=self.send_data)
+        th.start()
+        print("send_data_start")
     # 기존에 button 하나에 얼굴인식이랑 사진 보여주기를 모두 시행했던 부분을
     # ID랑 비밀번호 체크 후에 valid 할 때에만 진행될 수 있도록 변경.
     def check_ID_Password(self):
@@ -152,7 +159,7 @@ class WindowClass(QMainWindow, form_class):
 
     # 카메라 보여주기
     def camera_show(self):
-        print("Camera show")
+        print("Camera show start\n")
 
         # width = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_WIDTH)
         # height = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -170,15 +177,18 @@ class WindowClass(QMainWindow, form_class):
         while True:
             # ret, img = self.cap.read()
             try:
+                self.Eye_Track.get_align_depth()
                 # img = cv2.cvtColor(self.Eye_Track.color_image, cv2.COLOR_BGR2RGB)
                 img = self.Eye_Track.color_image
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w, c = img.shape
                 qImg = QtGui.QImage(img.data, w, h, w * c, QtGui.QImage.Format_RGB888)
                 pixmap = QtGui.QPixmap.fromImage(qImg)
                 camera_label.setPixmap(pixmap)
+                # print("Camera show OK\n")
             except:
                 guide_label.setText("카메라를 불러올 수 없습니다. 잠시 후에 다시 시도해주세요. ")
-                break
+                # break
         self.Eye_Track.color_image.release()
         print("Thread end.")
 
@@ -198,12 +208,17 @@ class WindowClass(QMainWindow, form_class):
         face_encodings = []
         process_this_frame = True
         while self.identify_user_token <= 1 and flag:
-            self.Eye_Track.get_align_depth()
+
+            time.sleep(5)
+            break
+            # self.Eye_Track.get_align_depth()
+            # self.camera_show()
             try:
                 # Grab a single frame of video
                 # ret, frame = video_capture.read()
-                # print(f"video_capture ret = {ret}")
+                # prself.face_frameint(f"video_capture ret = {ret}")
                 self.face_frame = self.Eye_Track.color_image
+                self.face_frame = cv2.cvtColor(self.face_frame, cv2.COLOR_BGR2RGB)
 
                 # Resize frame of video to 1/4 size for faster face recognition processing
                 small_frame = cv2.resize(
@@ -222,7 +237,7 @@ class WindowClass(QMainWindow, form_class):
                         rgb_small_frame, face_locations
                     )
 
-                    # print(face_encodings)
+                    print(face_encodings)
                     for face_encoding in face_encodings:
                         # See if the face is a match for the known face(s)
                         matches = face_recognition.compare_faces(
@@ -250,7 +265,6 @@ class WindowClass(QMainWindow, form_class):
                             print("hello " + user)
                             flag = False
                             break
-
                 process_this_frame = not process_this_frame
             except:
                 pass
@@ -268,53 +282,39 @@ class WindowClass(QMainWindow, form_class):
 
     # 아두이노로 부터 값을 지속적으로 갱신하는 함수
     def alcohol_value_update(self):
-        start_time = time()
-        # 조금 여유롭게 15초동안 실행
-        while time() - start_time < 15:
-            temp_list = []
-            while self.ser.readable():
-                a = self.ser.read().decode()
-                if a == "\n":
-                    break
-                temp_list.append(a)
-            print(temp_list)
+        start_time = time.time()
+        # 조금 여유롭게 15초동안 실행 -> 10 times serial data
+        temp_list = []
+        while len(temp_list) <= 10 and not self.alcohol_pass:
             try:
-                # 기존 코드대로 짜면 아두이노에서 값을 읽자마자 브레이크 되어버림
-                # A1이 나올때까지 값을 읽거나 시간제한을 두거나 하는방식으로 바꿔봄
-
-                # if temp_list[0] == "A":
-                #     self.alcohol_value = int(temp_list[1])
-                #     print(f"Alcohol state : {self.alcohol_value}")
-                #     break
-
-                if temp_list[0] == "A":
-                    self.alcohol_value = int(temp_list[1])
-                    if self.alcohol_value == 0:
+                if self.ser.readable():
+                    a = self.ser.read().decode()
+                    if a == "0":
                         self.user_guide_label.setText("다시 불어줘요")
-                    elif self.alcohol_value == 2:
+                        break
+                    elif a == "2":
                         self.user_guide_label.setText("술마시면 안돼용")
-                        # 프로그램 자체 종료해버리는 무언가...
-                        sys.exit()
-                    else:
+                    elif a == "1":
                         self.user_guide_label.setText("통과!")
                         self.alcohol_pass = True
-
-                        # 더이상 값을 읽어올 필요가 없다.
                         break
-                    pass
+                    temp_list.append(a)
             except:
                 pass
+        print(f"alcohol state : {temp_list}")
 
     def faceID_alcohol(self, user="jiwon"):
         print("let's start faceID_alcohol")
-        start_time = time()
-        while not self.alcohol_pass:
-            # alcohol_value_update method에서 값 처리까지 다 하니까 이거만 해도 됨
-            self.alcohol_value_update_start()
+        start_time = time.time()
+        self.alcohol_value_update()
+        # while not self.alcohol_pass:
+        #     # alcohol_value_update method에서 값 처리까지 다 하니까 이거만 해도 됨
+        #     # self.alcohol_value_update_start()
+        #     self.alcohol_value_update()
 
-            # 10초안에 음주측정 통과 못할시 프로그램 종료
-            if time() - start_time > 10:
-                sys.exit()
+        #     # 10초안에 음주측정 통과 못할시 프로그램 종료
+        #     if time.time() - start_time > 10:
+        #         sys.exit()
 
         print("좌석 조절 시작 (눈 위치 인식 시작)")
         self.user_guide_label.setText(
@@ -326,8 +326,8 @@ class WindowClass(QMainWindow, form_class):
         return
 
     def eye_track(self):
-        t = time()
-        while time() - t < 1:
+        t = time.time()
+        while time.time() - t < 1:
             # self.Eye_Track.starting_camera()
             # self.Eye_Track.starting_mediapipe()
 
@@ -338,6 +338,7 @@ class WindowClass(QMainWindow, form_class):
 
             # vidcap은 이미지가 아니라 카메라라서 이렇게 하면 틀리지 않나요??
             vidcap = self.Eye_Track.color_image
+            vidcap = cv2.cvtColor(vidcap, cv2.COLOR_BGR2RGB)
 
             try:
                 filtered_xy = np.zeros((0, 2))
@@ -345,13 +346,13 @@ class WindowClass(QMainWindow, form_class):
                 count = 0
                 eye_pos_average = [0, 0, 0]
 
-                start_time = time()
+                start_time = time.time()
                 time_limit = 100
                 flag = True
                 # while(flag or time() - start_time < time_limit):
                 while flag:
-                    ret, image = vidcap.read()
-                    # image = cv2.rotate(image,cv2.ROTATE_90_CLOCKWISE)
+                    # ret, image = vidcap.read()
+                    image = cv2.rotate(vidcap,cv2.ROTATE_90_CLOCKWISE)
 
                     # self.Eye_Track.get_align_depth()
                     self.Eye_Track.face_detect()
@@ -361,23 +362,35 @@ class WindowClass(QMainWindow, form_class):
                     #     start_time = time()
                     #     time_limit = 5
                     #     flag = False
-                    if count > 1000:
+                    if count > 50:
                         flag = False
 
                     # 어차피 평균 낼꺼면 이런식으로 하는게 더 효율적일 것 같아요!
-                    eye_pos_average[0] += self.Eye_Track.eye[0] / 1000
-                    eye_pos_average[1] += self.Eye_Track.eye[1] / 1000
-                    eye_pos_average[2] += self.Eye_Track.eye[2] / 1000
+                    eye_pos_average[0] += self.Eye_Track.eye[0] / 50
+                    eye_pos_average[1] += self.Eye_Track.eye[1] / 50
+                    eye_pos_average[2] += self.Eye_Track.eye[2] / 50
 
                     count += 1
 
-                self.Eye_Track.pipeline.stop()
+                # self.Eye_Track.pipeline.stop()
                 self.eye_pos = eye_pos_average.copy()
 
             finally:
-                self.Eye_Track.pipeline.stop()
+                pass                
+                # try:
+                #     self.Eye_Track.pipeline.stop()
+                # except:
+                #     pass
 
             # self.Eye_Track.main()
+            print("좌석 조절 데이터 전송 시작")
+            self.user_guide_label.setText(
+                "좌석 및 사이드미러 조절이 시작됩니다."
+            )
+
+            # time.sleep(2)
+            self.send_data_start()
+            return
 
     def calc_seat_pos(self):  # 처음 위치로부터 얼마나 이동해야 하는지 계산
         # https://www.physiomed.co.uk/uploads/guide/file/21/Physiomed_Sitting_Guide_-_Driving_Digital.pdf
@@ -455,12 +468,13 @@ class WindowClass(QMainWindow, form_class):
         B, C = map(str, self.calc_side_angle())
 
         Trans = "Q" + A + B + C
+        print(f"sending data {Trans} ...")
         Trans = Trans.encode("utf-8")
 
-        starttime = time()
+        starttime = time.time()
 
-        while (time() - starttime) <= 2:
-            self.ser.write(Trans)
+        while (time.time() - starttime) <= 2:
+            self.ser2.write(Trans)
 
 
 if __name__ == "__main__":

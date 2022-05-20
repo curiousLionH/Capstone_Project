@@ -5,15 +5,15 @@
         "password": "123456"
     },
 
-    "고형성아이디": {
+    "khs": {
         "name": "고형성",
-        "height": 172,
+        "height": 176,
         "password": "000000"
     },
 
-    "이재현아이디": {
+    "ljh": {
         "name": "이재현",
-        "height": 172,
+        "height": 170,
         "password": "000000"
     },
     
@@ -23,9 +23,9 @@
         "password": "000000"
     },
     
-    "이지원아이디": {
+    "jwlee": {
         "name": "이지원",
-        "height": 172,
+        "height": 160,
         "password": "000000"
     }
 }

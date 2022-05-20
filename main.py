@@ -287,8 +287,10 @@ class WindowClass(QMainWindow, form_class):
         temp_list = []
         while len(temp_list) <= 10 and not self.alcohol_pass:
             try:
+                # print("alcohol!!!!!")
                 if self.ser.readable():
                     a = self.ser.read().decode()
+                    print(f"alcohol now : {a}")
                     if a == "0":
                         self.user_guide_label.setText("다시 불어줘요")
                         break
@@ -299,7 +301,10 @@ class WindowClass(QMainWindow, form_class):
                         self.alcohol_pass = True
                         break
                     temp_list.append(a)
+                else:
+                    print("alcohol not readable")
             except:
+                # print("alcohol not readable")
                 pass
         print(f"alcohol state : {temp_list}")
 
@@ -446,27 +451,32 @@ class WindowClass(QMainWindow, form_class):
         best_angle = 360
         for i in range(90):
             error = i / 180 * math.pi * 2 - (
-                np.arctan(
+                np.arctan2(
                     (l - m * np.cos(i / 180 * math.pi))
-                    / (m * np.sin(i / 180 * math.pi))
+                    , (m * np.sin(i / 180 * math.pi))
                 )
-                + np.arctan(
+                + np.arctan2(
                     (z - m * np.cos(i / 180 * math.pi))
-                    / (k + m * np.sin(i / 180 * math.pi))
+                    , (k + m * np.sin(i / 180 * math.pi))
                 )
             )
             best_angle = min(best_angle, np.absolute(error))
 
         theta1 = int(best_angle)  # degree
         theta2 = int(
-            np.arctan((y_axis - y) / (z - m * math.cos(theta1))) / 2 * 180 / math.pi
+            np.arctan2((y_axis - y) , (z - m * math.cos(theta1))) / 2 * 180 / math.pi
         )  # degree
+
+        
         return theta1, theta2
 
     def send_data(self):
         A = str(self.calc_seat_pos())
         B, C = map(str, self.calc_side_angle())
 
+        A = A.zfill(2)
+        B = B.zfill(2)
+        C = C.zfill(2)
         Trans = "Q" + A + B + C
         print(f"sending data {Trans} ...")
         Trans = Trans.encode("utf-8")

@@ -1,22 +1,21 @@
 import serial
+import time
 
 ser = serial.Serial(
     # port='/dev/cu.HC-06-DevB',
-    port='/dev/ttyACM0',
+    port= 'COM1',    # Port Number
     baudrate=9600,
 )
 
-while True:
-    temp_list = []
-    while ser.readable():
-        a = ser.read().decode()
-        if (a == '\n'):
-            break
-        temp_list.append(a)
-    print(temp_list)
-    try:
-        if (temp_list[0] == 'A'):
-            dfjldsfj = int(temp_list[1])
-            print(temp_list[1])
-    except:
-        pass
+A = "12"
+B = "34"
+C = "56"
+
+Trans = "Q" + A + B + C
+print(f"sending data {Trans} ...")
+Trans = Trans.encode("utf-8")
+
+starttime = time.time()
+
+while (time.time() - starttime) <= 2:
+    ser.write(Trans)

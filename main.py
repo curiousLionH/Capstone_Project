@@ -51,7 +51,7 @@ class WindowClass(QMainWindow, form_class):
         # 아두이노랑 시리얼 포트 연결
         self.ser = serial.Serial(
             # port='/dev/cu.HC-06-DevB',
-            port="/dev/ttyACM1",
+            port='/dev/ttyACM0',
             baudrate=9600,
         )
 

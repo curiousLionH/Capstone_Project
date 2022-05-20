@@ -93,7 +93,7 @@ class Align_Depth_Eye_Track():
         self.cvFpsCalc = CvFpsCalc(buffer_len=10)
     
     def get_align_depth(self):
-        # print("get_align_depth!!!!")
+        print("get_align_depth!!!!")
         # Streaming loop
         # Get frameset of color and depth
         frames = self.pipeline.wait_for_frames()

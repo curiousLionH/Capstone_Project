@@ -53,8 +53,8 @@
    <widget class="QLabel" name="camera_show_label">
     <property name="geometry">
      <rect>
-      <x>340</x>
-      <y>220</y>
+      <x>350</x>
+      <y>70</y>
       <width>640</width>
       <height>480</height>
      </rect>

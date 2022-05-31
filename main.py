@@ -36,9 +36,8 @@ class WindowClass(QMainWindow, form_class):
 
         # 유저 얼굴 확인 됐으면 True, 아니면 False
         self.identify_user_token = 0
-        # self.cap = cv2.VideoCapture(6)      # 0 : webcam 4: depth (d435i) 6: rgb(d435i)
 
-        # 사진 임베딩 하는 부분
+        # 사진 임베딩
         self.known_face_encodings = []
         self.known_face_names = []
 
@@ -50,84 +49,70 @@ class WindowClass(QMainWindow, form_class):
 
         # 아두이노랑 시리얼 포트 연결 (ser : alcohol / ser2 : seat, mirror)
         self.ser = serial.Serial(
-            # port='/dev/cu.HC-06-DevB',
-            port='/dev/ttyACM0',
+            port='/dev/ttyUSB0',
             baudrate=9600,
         )
         self.ser2 = serial.Serial(
-            # port='/dev/cu.HC-06-DevB',
-            port='/dev/ttyACM1',
+            port='/dev/ttyACM0',
             baudrate=9600,
         )
 
-        # 알코올 패스 함?
+        # 알코올 테스트 통과
         self.alcohol_pass = False
 
         # 블루투스통신값(음주측정)
-        # 0:다시불어, 1:정상, 2:음주상태
+        # 0:재측정요구, 1:정상, 2:음주상태
         self.alcohol_value = None
 
-        # 얘가 음주측정 안내, 성공 실패, 얼굴인식 다 여기서 멘트 안내.
-        # 가이드 라벨 invisible
+        # 가이드 라벨 숨기기
         self.user_guide_label.setVisible(False)
 
-        # 카메라 시작 버튼 연결
-        # 기존에 버튼에 2개의 함수 연결하던것을 check_ID_Password로 합침
-        self.camera_start_button.clicked.connect(self.check_ID_Password)
+        # 로그인 버튼 연결
+        self.login_button.clicked.connect(self.check_ID_Password)
 
         # 사용자 눈 좌표
         self.eye_pos = [0, 0, 0]
-
-    def align_depth_repeat(self):
-        # self.Eye_Track.get_align_depth()
-        while True:
-            self.Eye_Track.get_align_depth()
-            self.camera_show()
 
     def camera_start(self):
         self.Eye_Track.starting_camera()
         self.Eye_Track.starting_mediapipe()
         self.Eye_Track.get_align_depth()
-        print("camera_start")
         th = threading.Thread(target=self.camera_show)
         th.start()
-        # while True:
-        #     self.Eye_Track.get_align_depth()
-        #     self.cap = self.Eye_Track.color_image
-
-    # def camera_start(self):
-    #     th = threading.Thread(target=self.camera_show)
-    #     th.start()
-    #     print("camera_start")
 
     def faceID_start(self, user):
         th = threading.Thread(target=self.faceID, args=(user,))
         th.start()
-        print("faceID_start")
 
     def alcohol_value_update_start(self):
         th = threading.Thread(target=self.alcohol_value_update)
         th.start()
-        # print("alcohol_value_update_start")
 
-    def faceID_alcohol_start(self, user):
-        th = threading.Thread(target=self.faceID_alcohol, args=(user,))
+    def alcohol_test_start(self, user):
+        th = threading.Thread(target=self.alcohol_test)
         th.start()
-        print("faceID_alcohol_start")
 
     def eye_track_start(self):
         th = threading.Thread(target=self.eye_track)
         th.start()
-        print("eye_track_start")
 
     def send_data_start(self):
         th = threading.Thread(target=self.send_data)
         th.start()
-        print("send_data_start")
+
+    # 시스템 종료 (로그인 화면으로 돌아감)
+    def reset_program(self):
+        self.IDLabel.setVisible(True)
+        self.IDTextField.setVisible(True)
+        self.passwordLabel.setVisible(True)
+        self.passwordTextField.setVisible(True)
+        self.login_button.setVisible(True)
+        self.user_guide_label.setVisible(False)
+        self.camera_show_label.setVisible(False)
+
     # 기존에 button 하나에 얼굴인식이랑 사진 보여주기를 모두 시행했던 부분을
     # ID랑 비밀번호 체크 후에 valid 할 때에만 진행될 수 있도록 변경.
     def check_ID_Password(self):
-
         # 유저 이름 가져오기
         self.user_id = self.IDTextField.text()
         self.user_password = self.passwordTextField.text()
@@ -138,8 +123,7 @@ class WindowClass(QMainWindow, form_class):
         # 1. 유저 이름이 info.json 그니까 정보에 있는지 확인
         # 2. 패스워드가 일치하는지 확인
         if (self.user_id not in self.users_height_data) or (
-            self.user_password != self.users_height_data[self.user_id]["password"]
-        ):
+            self.user_password != self.users_height_data[self.user_id]["password"]):
             self.user_guide_label.setVisible(True)
             self.user_guide_label.setText("ID 혹은 Password를 다시 확인 해 주세요")
             return
@@ -155,102 +139,63 @@ class WindowClass(QMainWindow, form_class):
         self.IDTextField.setVisible(False)
         self.passwordLabel.setVisible(False)
         self.passwordTextField.setVisible(False)
-        self.camera_start_button.setVisible(False)
+        self.login_button.setVisible(False)
 
     # 카메라 보여주기
     def camera_show(self):
-        print("Camera show start\n")
-
-        # width = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_WIDTH)
-        # height = self.Eye_Track.color_image.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-        # 라벨들 가져오기
         camera_label = self.camera_show_label
         guide_label = self.user_guide_label
         camera_label.resize(1080, 720)
         guide_label.setVisible(True)
-
+        # 얼굴인식 시작 안내
         guide_label.setText("얼굴 인식이 진행중입니다. 잠시만 기다려주세요.")
+        camera_label.setVisible(True)
 
         # 카메라 가져오기
-        # cap = cv2.VideoCapture(0)
         while True:
-            # ret, img = self.cap.read()
             try:
                 self.Eye_Track.get_align_depth()
-                # img = cv2.cvtColor(self.Eye_Track.color_image, cv2.COLOR_BGR2RGB)
                 img = self.Eye_Track.color_image
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w, c = img.shape
                 qImg = QtGui.QImage(img.data, w, h, w * c, QtGui.QImage.Format_RGB888)
                 pixmap = QtGui.QPixmap.fromImage(qImg)
                 camera_label.setPixmap(pixmap)
-                # print("Camera show OK\n")
-            except:
+            except:     # 카메라 불러올 수 없는 경우
                 guide_label.setText("카메라를 불러올 수 없습니다. 잠시 후에 다시 시도해주세요. ")
-                # break
-        self.Eye_Track.color_image.release()
-        print("Thread end.")
+                break
 
-    def faceID(self, user="jiwon"):
-
-        # self.user_guide_label.setText("사용자 인식이 완료되었습니다. 음주 측정을 시작해주세요")
-        # self.faceID_alcohol_start(user)
-        # return
+    def faceID(self, user):
 
         flag = True
-        print("let's start faceID")
-        
-
-        # video_capture = self.cap
 
         face_locations = []
         face_encodings = []
         process_this_frame = True
         while self.identify_user_token <= 1 and flag:
 
-            time.sleep(5)
-            break
-            # self.Eye_Track.get_align_depth()
-            # self.camera_show()
             try:
-                # Grab a single frame of video
-                # ret, frame = video_capture.read()
-                # prself.face_frameint(f"video_capture ret = {ret}")
                 self.face_frame = self.Eye_Track.color_image
                 self.face_frame = cv2.cvtColor(self.face_frame, cv2.COLOR_BGR2RGB)
 
-                # Resize frame of video to 1/4 size for faster face recognition processing
-                small_frame = cv2.resize(
+                # 인식 속도 개선을 위한 프레임 크기 조절
+                rgb_small_frame = cv2.resize(
                     self.Eye_Track.color_image, (0, 0), fx=0.25, fy=0.25
                 )
 
-                # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-                rgb_small_frame = small_frame[:, :, ::-1]
-
-                # Only process every other frame of video to save time
                 if process_this_frame:
-                    # Find all the faces and face encodings in the current frame of video
                     face_locations = face_recognition.face_locations(rgb_small_frame)
-                    # print(f"rgb_small_frame: {rgb_small_frame}, face_locations: {face_locations}")
                     face_encodings = face_recognition.face_encodings(
                         rgb_small_frame, face_locations
                     )
 
-                    print(face_encodings)
                     for face_encoding in face_encodings:
-                        # See if the face is a match for the known face(s)
+                        # 매칭 여부 확인
                         matches = face_recognition.compare_faces(
                             self.known_face_encodings, face_encoding
                         )
                         name = "Unknown"
 
-                        # # If a match was found in known_face_encodings, just use the first one.
-                        # if True in matches:
-                        #     first_match_index = matches.index(True)
-                        #     name = known_face_names[first_match_index]
-
-                        # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(
                             self.known_face_encodings, face_encoding
                         )
@@ -259,163 +204,105 @@ class WindowClass(QMainWindow, form_class):
                             name = self.known_face_names[best_match_index]
 
                         if name == "Unknown":
-                            print("who are you")
                             self.identify_user_token += 1
                         else:
-                            print("hello " + user)
                             flag = False
                             break
                 process_this_frame = not process_this_frame
             except:
                 pass
-        # 얼굴 인식이 성공하든 실패하든 이쪽으로 넘어오게 됨
-        # face_names[-1] == user
-        # 이런식의 코드로 성공한지 실패한지 판단해야 할듯?
 
-        # self.camera_start_button.setVisible(True)
-        # self.camera_start_button.setText("음주 측정 시작")
 
-        # 이 부분도 그냥 버튼으로 하지 말고 시간초로 주는게 좋지 않을까 싶어요?
-        self.user_guide_label.setText("사용자 인식이 완료되었습니다. 10초 이내에 음주 측정을 완료해주세요")
-        self.faceID_alcohol_start(user)
+        # 얼굴인식 실패
+        if self.identify_user_token >= 2:
+            self.user_guide_label.setText("얼굴인식에 실패했습니다. 시스템이 종료됩니다.")
+            time.sleep(3)
+            self.reset_program()
+
+        # 얼굴인식 성공
+        else:
+            self.user_guide_label.setText(f"{self.user_name}님 안녕하세요.\n사용자 인식이 완료되었습니다. 10초 이내에 음주 측정을 완료해주세요")
+            time.sleep(3)
+            self.alcohol_test_start()
+
         return
 
-    # 아두이노로 부터 값을 지속적으로 갱신하는 함수
-    def alcohol_value_update(self):
+    def alcohol_test(self):
         start_time = time.time()
-        # 조금 여유롭게 15초동안 실행 -> 10 times serial data
-        temp_list = []
-        while len(temp_list) <= 10 and not self.alcohol_pass:
+        # 음주측정 제한 시간 10초
+        while time.time()-start_time < 10 and not self.alcohol_pass:
             try:
-                # print("alcohol!!!!!")
                 if self.ser.readable():
                     a = self.ser.read().decode()
-                    print(f"alcohol now : {a}")
                     if a == "0":
-                        self.user_guide_label.setText("다시 불어줘요")
-                        break
+                        self.user_guide_label.setText("알코올 측정이 제대로 되지 않았습니다. 센서를 다시 불어주세요.")
                     elif a == "2":
-                        self.user_guide_label.setText("술마시면 안돼용")
+                        self.user_guide_label.setText("음주 상태입니다. 시스템을 종료합니다.")
+                        self.reset_program()
+                        return
                     elif a == "1":
-                        self.user_guide_label.setText("통과!")
+                        self.user_guide_label.setText("알코올 측정 통과!")
                         self.alcohol_pass = True
                         break
-                    temp_list.append(a)
                 else:
                     print("alcohol not readable")
             except:
-                # print("alcohol not readable")
                 pass
-        print(f"alcohol state : {temp_list}")
-
-    def faceID_alcohol(self, user="jiwon"):
-        print("let's start faceID_alcohol")
-        start_time = time.time()
-        self.alcohol_value_update()
-        # while not self.alcohol_pass:
-        #     # alcohol_value_update method에서 값 처리까지 다 하니까 이거만 해도 됨
-        #     # self.alcohol_value_update_start()
-        #     self.alcohol_value_update()
-
-        #     # 10초안에 음주측정 통과 못할시 프로그램 종료
-        #     if time.time() - start_time > 10:
-        #         sys.exit()
+        # 10초 내에 음주측정 실패 시 시스템 종료
+        if (not self.alcohol_pass):
+            self.reset_program()
+            return
 
         print("좌석 조절 시작 (눈 위치 인식 시작)")
         self.user_guide_label.setText(
             "사용자의 안전을 위하여 좌석 및 사이드미러 조절이 진행될 예정입니다. 자연스럽게 정면을 바라봐주세요. "
         )
-
-        # time.sleep(2)
+        time.sleep(3)
         self.eye_track_start()
         return
 
     def eye_track(self):
-        t = time.time()
-        while time.time() - t < 1:
-            # self.Eye_Track.starting_camera()
-            # self.Eye_Track.starting_mediapipe()
+        vidcap = self.Eye_Track.color_image
+        vidcap = cv2.cvtColor(vidcap, cv2.COLOR_BGR2RGB)
+        eye_pos_average = [0, 0, 0]
 
-            # 이부분도 faceID 합친것 처럼 하나로 합쳐야 할 것 같아요
-            # vidcap = cv2.VideoCapture(cv2.CAP_DSHOW + 0)
-            # vidcap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
-            # vidcap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
+        for i in range(50):
+            self.Eye_Track.face_detect()
+            self.Eye_Track.main()
 
-            # vidcap은 이미지가 아니라 카메라라서 이렇게 하면 틀리지 않나요??
-            vidcap = self.Eye_Track.color_image
-            vidcap = cv2.cvtColor(vidcap, cv2.COLOR_BGR2RGB)
+            # 50회 tracking한 평균값 저장
+            eye_pos_average[0] += self.Eye_Track.eye[0] / 50
+            eye_pos_average[1] += self.Eye_Track.eye[1] / 50
+            eye_pos_average[2] += self.Eye_Track.eye[2] / 50
 
-            try:
-                filtered_xy = np.zeros((0, 2))
-                # f = open("average.csv", "w")
-                count = 0
-                eye_pos_average = [0, 0, 0]
+        self.eye_pos = eye_pos_average.copy()
 
-                start_time = time.time()
-                time_limit = 100
-                flag = True
-                # while(flag or time() - start_time < time_limit):
-                while flag:
-                    # ret, image = vidcap.read()
-                    image = cv2.rotate(vidcap,cv2.ROTATE_90_CLOCKWISE)
+        print("좌석 조절 데이터 전송 시작")
+        self.user_guide_label.setText(
+            "좌석 및 사이드미러 조절이 시작됩니다."
+        )
 
-                    # self.Eye_Track.get_align_depth()
-                    self.Eye_Track.face_detect()
-                    self.Eye_Track.main()
-                    # if flag and self.Eye_Track.eye[0] > 0:
-                    #     print("Eye detected!!!!")
-                    #     start_time = time()
-                    #     time_limit = 5
-                    #     flag = False
-                    if count > 50:
-                        flag = False
+        # 좌석, 사이드미러 조절값 전송
+        self.send_data_start()
+        self.user_guide_label.setText(
+            "이제 시동이 걸립니다.\n즐겁고 안전한 주행 되세요!"
+        )
+        return
 
-                    # 어차피 평균 낼꺼면 이런식으로 하는게 더 효율적일 것 같아요!
-                    eye_pos_average[0] += self.Eye_Track.eye[0] / 50
-                    eye_pos_average[1] += self.Eye_Track.eye[1] / 50
-                    eye_pos_average[2] += self.Eye_Track.eye[2] / 50
-
-                    count += 1
-
-                # self.Eye_Track.pipeline.stop()
-                self.eye_pos = eye_pos_average.copy()
-
-            finally:
-                pass                
-                # try:
-                #     self.Eye_Track.pipeline.stop()
-                # except:
-                #     pass
-
-            # self.Eye_Track.main()
-            print("좌석 조절 데이터 전송 시작")
-            self.user_guide_label.setText(
-                "좌석 및 사이드미러 조절이 시작됩니다."
-            )
-
-            # time.sleep(2)
-            self.send_data_start()
-            return
-
-    def calc_seat_pos(self):  # 처음 위치로부터 얼마나 이동해야 하는지 계산
-        # https://www.physiomed.co.uk/uploads/guide/file/21/Physiomed_Sitting_Guide_-_Driving_Digital.pdf
-        # 근거
-
+    def calc_seat_pos(self):  
         # 1. 무릎 뒤쪽이 의자랑 닿지 않도록.
         # 손가락 2개 정도의 틈이 생기면 좋다.
-
         # 2. 무릎이 최소 20~30도 정도는 굽혀지도록
-
         # 페달의 위치를 원점으로 (0, 0, 0)
 
         CHAIR_HEIGHT = 45  # 의자엉덩이 높이
         CAMERA_HEIGHT = 136  # 정확한 측정 후 수정 예정
-        INIT_SEAT_POS = 110  # 초기 의자의 위치
+        INIT_SEAT_POS = 100  # 초기 의자의 위치
 
         CONSTANT_FOR_EYE_HEAD = 0.07  # 사람 키에 대한 눈~정수리 거리
         user_distance_between_eye_head = self.user_height * CONSTANT_FOR_EYE_HEAD
 
-        # 사용자의 앉은 키 user_sit_height = camera_height - y
+        # 사용자의 앉은 키
         user_sit_height = (
             CAMERA_HEIGHT
             - self.eye_pos[1]
@@ -425,54 +312,46 @@ class WindowClass(QMainWindow, form_class):
 
         user_leg_length = self.user_height - user_sit_height + 3  # 사용자의 다리길이 + 신발 두께
 
-        # 자세한 설명은 정준환 노트북에 있음.
         adjusted_seat_pos = math.sqrt(
             (user_leg_length * math.cos(math.radians(20 / 2))) ** 2 - CHAIR_HEIGHT**2
         )
+
         # 움직여야 하는 거리를 기어비를 통해 회전수로 변환
         distance_to_move = INIT_SEAT_POS - adjusted_seat_pos
         number_of_rev = int((32 * distance_to_move) / 20.72)
 
-        return number_of_rev
+        return number_of_rev, distance_to_move
 
-    def calc_side_angle(self):
-
+    def calc_side_angle(self, D):
+    
         # 단위: cm
-        l = 200
-        l_1 = 10
-        l_s = 15
-        m = l_1 + l_s / 5
-        k = 45
-        z = self.eye_pos[2]
-
-        y_axis = 136 - 90
-        y = self.eye_pos[1]
-
-        best_angle = 360
-        for i in range(90):
-            error = i / 180 * math.pi * 2 - (
-                np.arctan2(
-                    (l - m * np.cos(i / 180 * math.pi))
-                    , (m * np.sin(i / 180 * math.pi))
-                )
-                + np.arctan2(
-                    (z - m * np.cos(i / 180 * math.pi))
-                    , (k + m * np.sin(i / 180 * math.pi))
-                )
-            )
-            best_angle = min(best_angle, np.absolute(error))
-
-        theta1 = int(best_angle)  # degree
-        theta2 = int(
-            np.arctan2((y_axis - y) , (z - m * math.cos(theta1))) / 2 * 180 / math.pi
-        )  # degree
-
+        l = 200 # 카메라부터 차체 끝까지의 길이
+        l_1 = 15 # 차체에서 사이드미러까지의 길이
+        l_s = 13.8 # 사이드 미러의 총 길이
+        m = (l_1+l_s/5)
+        k = 20.7 # 카메라의 중앙에서 차제 시작점까지의 거리
+        z = self.eye_pos[2] - D # 카메라에서 눈까지의 거리 (깊이)
         
+        y_axis = 136 - 90 - 24.3 # 카메라에서 눈까지의 거리 (높이)
+        y = self.eye_pos[1]
+        
+        # 수식 상 정확한 값을 찾기 어려워, 결과값과 가장 유사한 (오차가 적은) 값을 사용
+        temp_min = 100
+        best_angle = 0
+        for i in range(90):
+            error = 2*i*math.pi/180 - (math.atan2(l-m*np.cos(i*math.pi/180), m*np.sin(i*math.pi/180))+math.atan2(z-m*np.cos(i*math.pi/180), k+m*np.sin(i/math.pi*180)))
+            if np.absolute(error) < temp_min:
+                temp_min =np.absolute(error)
+                best_angle = i
+            print(temp_min)
+            
+        theta1 = int(best_angle) # degree
+        theta2 = int(np.arctan((y_axis-y)/(z-m*math.cos(theta1)))/2*180/math.pi) # degree
         return theta1, theta2
 
     def send_data(self):
-        A = str(self.calc_seat_pos())
-        B, C = map(str, self.calc_side_angle())
+        A, D = str(self.calc_seat_pos())
+        B, C = map(str, self.calc_side_angle(D))
 
         A = A.zfill(2)
         B = B.zfill(2)
@@ -483,9 +362,9 @@ class WindowClass(QMainWindow, form_class):
 
         starttime = time.time()
 
-        while (time.time() - starttime) <= 2:
-            self.ser2.write(Trans)
-
+        # while True:
+        #     self.ser2.write(Trans)
+        #     time.sleep(1)
 
 if __name__ == "__main__":
     print("start")
